@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: worker
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git'
+    targetRevision: main
+    path: apps/worker # 🌟 타겟 폴더 지정
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: hailcast # 🌟 B-1 필수: 무조건 hailcast 네임스페이스
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

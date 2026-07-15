@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predict
+  namespace: hailcast
+  labels:
+    app: predict
+spec:
+  replicas: 1 # 규약 C항목 참고 (기본값 1)
+  selector:
+    matchLabels:
+      app: predict
+  template:
+    metadata:
+      labels:
+        app: predict
+    spec:
+      serviceAccountName: predict-sa # 🌟 필수 규칙: 방금 만든 SA 이름과 정확히 일치
+      containers:
+        - name: predict
+          # GitHub Actions(sed 명령어)가 자동으로 새 버전으로 바꿔치기할 타겟 주소입니다.
+          image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-predict:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: KEDA_NAMESPACE
+              value: "hailcast"
+            - name: KEDA_ENABLED
+              value: "true"

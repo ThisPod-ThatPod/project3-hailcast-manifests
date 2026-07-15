@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: predict
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git'
+    targetRevision: main
+    # 🌟 실제 앱의 쿠버네티스 설정 파일들이 모여있는 폴더 경로
+    path: apps/predict
+  destination:
+    server: 'https://kubernetes.default.svc'
+    # 🌟 7/14 공지사항 B-1 [필수] 규칙 적용: 무조건 hailcast 네임스페이스로 배포
+    namespace: hailcast
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # hailcast 네임스페이스가 클러스터에 없으면 알아서 생성

@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: hailcast
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      serviceAccountName: worker-sa # 🌟 B-2 필수: 위에서 만든 SA와 연결
+      containers:
+        - name: worker
+          image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-worker:latest
