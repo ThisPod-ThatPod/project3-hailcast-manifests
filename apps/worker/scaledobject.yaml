@@ -9,7 +9,7 @@ spec:
     envSourceContainerName: worker
   minReplicaCount: 1
   maxReplicaCount: 20
-  cooldownPeriod: 120
+  cooldownPeriod: 300
   triggers:
     - type: aws-sqs-queue
       metadata:
