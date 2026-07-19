@@ -1,0 +1,4 @@
+serviceAccount:
+  operator:
+    create: true
+    name: keda-operator

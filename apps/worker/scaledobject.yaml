@@ -1,1 +1,20 @@
-# 11.2 KEDA ScaledObject (멀티트리거 유력)
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: hailcast-worker-scaler
+  namespace: hailcast
+spec:
+  scaleTargetRef:
+    name: hailcast-worker
+    envSourceContainerName: worker
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  cooldownPeriod: 300
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURLFromEnv: SQS_QUEUE_URL
+        queueLength: "20"
+        awsRegion: ap-northeast-2
+      authenticationRef:
+        name: hailcast-keda-auth

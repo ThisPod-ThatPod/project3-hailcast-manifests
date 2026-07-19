@@ -1,3 +1,5 @@
 *.tmp
 .DS_Store
 secrets/
+keda-irsa-values.yaml
+*-private-values.yaml
