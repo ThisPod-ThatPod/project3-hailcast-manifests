@@ -13,10 +13,18 @@ spec:
   template:
     metadata:
       labels:
-        app: hailcast-worker 
+        app: hailcast-worker
     spec:
-      serviceAccountName: worker-sa # 🌟 B-2 필수: 위에서 만든 SA와 연결
+      serviceAccountName: worker-sa
       containers:
         - name: worker
-          image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-worker:latest
-          # (참고: 아까 PR 본문에 적으셨던 KEDA_NAMESPACE 등 env 설정이 있었다면 이 아래에 그대로 유지하시면 됩니다.)
+          image: <ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:<GITHUB_SHA> # ② ECR 네이밍 규약(-dev-) 및 SHA 플레이스홀더
+          resources: # ⑧ Karpenter 오토스케일링 시연용 
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+          env:
+            - name: SQS_QUEUE_URL # ⑤ Worker에도 필수 큐 URL 환경변수 추가
+              value: "<terraform output sqs_queue_url>"

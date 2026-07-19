@@ -3,16 +3,20 @@ kind: Application
 metadata:
   name: worker
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io # ⑦ 추가
 spec:
   project: default
   source:
     repoURL: 'https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git'
     targetRevision: main
-    path: apps/worker # 🌟 타겟 폴더 지정
+    path: apps/worker
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: hailcast # 🌟 B-1 필수: 무조건 hailcast 네임스페이스
+    namespace: hailcast
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # ⑨ Predict와 동일하게 네임스페이스 생성 옵션 추가
