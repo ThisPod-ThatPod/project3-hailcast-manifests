@@ -28,3 +28,18 @@ spec:
           env:
             - name: SQS_QUEUE_URL # ⑤ Worker에도 필수 큐 URL 환경변수 추가
               value: "<terraform output sqs_queue_url>"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_HOST
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_PASSWORD

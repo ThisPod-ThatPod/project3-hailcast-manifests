@@ -41,3 +41,18 @@ spec:
               value: "<terraform output model_bucket_name>"
             - name: SQS_QUEUE_URL # ⑤ 실값 주입 대기 (플레이스홀더)
               value: "<terraform output sqs_queue_url>"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_HOST
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_PASSWORD
