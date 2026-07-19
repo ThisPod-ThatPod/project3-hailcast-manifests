@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: hailcast-worker
   namespace: hailcast
   labels:
-    app: worker
+    app: hailcast-worker
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: worker
+      app: hailcast-worker
   template:
     metadata:
       labels:
-        app: worker
+        app: hailcast-worker 
     spec:
       serviceAccountName: worker-sa # 🌟 B-2 필수: 위에서 만든 SA와 연결
       containers:
         - name: worker
           image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-worker:latest
+          # (참고: 아까 PR 본문에 적으셨던 KEDA_NAMESPACE 등 env 설정이 있었다면 이 아래에 그대로 유지하시면 됩니다.)

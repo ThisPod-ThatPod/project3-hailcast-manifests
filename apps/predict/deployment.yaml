@@ -21,7 +21,7 @@ spec:
           # GitHub Actions(sed 명령어)가 자동으로 새 버전으로 바꿔치기할 타겟 주소입니다.
           image: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-predict:latest
           ports:
-            - containerPort: 8000
+            - containerPort: 8003
               name: http
           env:
             - name: KEDA_NAMESPACE
