@@ -1,1 +1,22 @@
-# ArgoCD app-of-apps 루트 (골격)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hailcast-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # C팀이 관리하는 매니페스트 레포지토리 주소입니다.
+    repoURL: 'https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git'
+    targetRevision: main
+    # 🌟 핵심: 이 지휘관 파일이 바라볼 타겟 폴더입니다.
+    path: argocd/applications
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true     # Git에서 삭제되면 클러스터에서도 자동 삭제
+      selfHeal: true  # 누군가 수동으로 수정하면 Git 상태로 강제 원복

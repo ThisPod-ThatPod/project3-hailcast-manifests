@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predict
+  namespace: hailcast
+  labels:
+    app: predict
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: predict
+  template:
+    metadata:
+      labels:
+        app: predict
+    spec:
+      serviceAccountName: predict-sa
+      containers:
+        - name: predict
+          image: <ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:<GITHUB_SHA> # ② ECR 네이밍 규약(-dev-) 및 SHA 플레이스홀더
+          ports:
+            - containerPort: 8003
+              name: http
+          resources: # ⑧ Karpenter 오토스케일링 시연을 위한 리소스 요청값
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+          env:
+            - name: KEDA_ENABLED
+              value: "true"
+            - name: KEDA_NAMESPACE
+              value: "hailcast"
+            - name: PREDICTION_MAX_AGE_SECONDS # ④ 1시간 조기 만료 방지
+              value: "18000"
+            - name: JSON_STORE_BACKEND # ⑤ S3 스토리지 연동 명시
+              value: "s3"
+            - name: S3_BUCKET # ⑤ 실값 주입 대기 (플레이스홀더)
+              value: "<terraform output model_bucket_name>"
+            - name: SQS_QUEUE_URL # ⑤ 실값 주입 대기 (플레이스홀더)
+              value: "<terraform output sqs_queue_url>"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_HOST
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_PASSWORD

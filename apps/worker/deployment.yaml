@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hailcast-worker
+  namespace: hailcast
+  labels:
+    app: hailcast-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hailcast-worker
+  template:
+    metadata:
+      labels:
+        app: hailcast-worker
+    spec:
+      serviceAccountName: worker-sa
+      containers:
+        - name: worker
+          image: <ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:<GITHUB_SHA> # ② ECR 네이밍 규약(-dev-) 및 SHA 플레이스홀더
+          resources: # ⑧ Karpenter 오토스케일링 시연용 
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+          env:
+            - name: SQS_QUEUE_URL # ⑤ Worker에도 필수 큐 URL 환경변수 추가
+              value: "<terraform output sqs_queue_url>"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_HOST
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-secret
+                  key: DB_PASSWORD
