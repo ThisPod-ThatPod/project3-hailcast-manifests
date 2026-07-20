@@ -18,7 +18,7 @@ spec:
       serviceAccountName: worker-sa
       containers:
         - name: worker
-          image: <ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:<GITHUB_SHA> # ② ECR 네이밍 규약(-dev-) 및 SHA 플레이스홀더
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:<GITHUB_SHA> # GITHUB_SHA는 app CI가 치환 (안건 A, 재혁님 담당)
           resources: # ⑧ Karpenter 오토스케일링 시연용 
             requests:
               cpu: "250m"
@@ -26,8 +26,8 @@ spec:
             limits:
               memory: "1Gi"
           env:
-            - name: SQS_QUEUE_URL # ⑤ Worker에도 필수 큐 URL 환경변수 추가
-              value: "<terraform output sqs_queue_url>"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
