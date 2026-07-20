@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/keda/_lib.sh
 source "$SCRIPT_DIR/_lib.sh"
 
-MODE="workflow"
 KEDA_VERIFY_LOG_SINCE="${KEDA_VERIFY_LOG_SINCE:-10m}"
 PASS_COUNT=0
 WARN_COUNT=0
@@ -13,7 +12,9 @@ FAIL_COUNT=0
 
 usage() {
   cat <<'EOF'
-Usage: verify.sh [--mode workflow|gitops]
+Usage: verify.sh
+
+Verifies the Argo CD-managed KEDA installation and rejects a separate Helm release.
 EOF
 }
 
@@ -34,11 +35,6 @@ fail() {
 
 while (($#)); do
   case "$1" in
-    --mode)
-      [[ $# -ge 2 ]] || keda_die "--mode 값이 필요합니다."
-      MODE="$2"
-      shift 2
-      ;;
     -h | --help)
       usage
       exit 0
@@ -49,16 +45,12 @@ while (($#)); do
   esac
 done
 
-[[ "$MODE" == "workflow" || "$MODE" == "gitops" ]] ||
-  keda_die "--mode는 workflow 또는 gitops여야 합니다."
 [[ "$KEDA_VERIFY_LOG_SINCE" =~ ^([0-9]+(ms|s|m|h))+$ ]] ||
   keda_die "KEDA_VERIFY_LOG_SINCE 형식이 잘못되었습니다: $KEDA_VERIFY_LOG_SINCE"
 
 keda_require_command kubectl
 keda_require_command jq
-if [[ "$MODE" == "workflow" ]]; then
-  keda_require_command helm
-fi
+keda_require_command helm
 
 keda_info "kubectl context: $(keda_current_context)"
 keda_cluster_reachable || keda_die "Kubernetes API에 연결할 수 없습니다."
@@ -69,39 +61,30 @@ else
   fail "namespace/$KEDA_NAMESPACE 없음"
 fi
 
-if [[ "$MODE" == "workflow" ]]; then
-  if keda_helm_release_exists; then
-    pass "Helm release $KEDA_NAMESPACE/$KEDA_RELEASE 존재"
+if keda_argocd_application_exists; then
+  pass "ArgoCD Application/argocd/$KEDA_APPLICATION 존재"
+  sync_status="$(keda_argocd_sync_status)"
+  health_status="$(
+    kubectl -n argocd get application "$KEDA_APPLICATION" \
+      -o jsonpath='{.status.health.status}' 2>/dev/null || true
+  )"
+  if [[ "$sync_status" == "Synced" ]]; then
+    pass "ArgoCD sync status=Synced"
   else
-    fail "Helm release $KEDA_NAMESPACE/$KEDA_RELEASE 없음"
+    fail "ArgoCD sync status=${sync_status:-unknown}"
   fi
-  if keda_argocd_application_exists; then
-    fail "workflow 모드인데 ArgoCD Application/keda도 존재함"
+  if [[ "$health_status" == "Healthy" ]]; then
+    pass "ArgoCD health status=Healthy"
+  else
+    fail "ArgoCD health status=${health_status:-unknown}"
   fi
 else
-  if keda_argocd_application_exists; then
-    pass "ArgoCD Application/argocd/$KEDA_APPLICATION 존재"
-    sync_status="$(keda_argocd_sync_status)"
-    health_status="$(
-      kubectl -n argocd get application "$KEDA_APPLICATION" \
-        -o jsonpath='{.status.health.status}' 2>/dev/null || true
-    )"
-    if [[ "$sync_status" == "Synced" ]]; then
-      pass "ArgoCD sync status=Synced"
-    else
-      fail "ArgoCD sync status=${sync_status:-unknown}"
-    fi
-    if [[ "$health_status" == "Healthy" ]]; then
-      pass "ArgoCD health status=Healthy"
-    else
-      fail "ArgoCD health status=${health_status:-unknown}"
-    fi
-  else
-    fail "ArgoCD Application/argocd/$KEDA_APPLICATION 없음"
-  fi
-  if keda_helm_release_exists; then
-    fail "gitops 모드인데 독립 Helm release도 존재함"
-  fi
+  fail "ArgoCD Application/argocd/$KEDA_APPLICATION 없음"
+fi
+if keda_helm_release_exists; then
+  fail "ArgoCD 외부의 독립 Helm release도 존재함"
+else
+  pass "ArgoCD 외부의 독립 Helm release 없음"
 fi
 
 if sa_json="$(kubectl -n "$KEDA_NAMESPACE" get serviceaccount keda-operator -o json 2>/dev/null)"; then
