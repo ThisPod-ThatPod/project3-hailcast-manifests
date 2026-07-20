@@ -18,7 +18,7 @@ spec:
       serviceAccountName: predict-sa
       containers:
         - name: predict
-          image: image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:<GITHUB_SHA> # GITHUB_SHA는 app CI가 치환 (안건 A, 재혁님 담당)
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:<GITHUB_SHA> # GITHUB_SHA는 app CI가 치환 (안건 A, 재혁님 담당)
           ports:
             - containerPort: 8003
               name: http
@@ -38,7 +38,7 @@ spec:
             - name: JSON_STORE_BACKEND # ⑤ S3 스토리지 연동 명시
               value: "s3"
             - name: S3_BUCKET
-               value: "hailcast-dev-model-artifacts-fbd3700f"
+              value: "hailcast-dev-model-artifacts-fbd3700f"
             - name: SQS_QUEUE_URL
               value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
             - name: DB_HOST
