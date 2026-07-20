@@ -2,3 +2,5 @@ serviceAccount:
   operator:
     create: true
     name: keda-operator
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::797452357900:role/hailcast-dev-irsa-keda"
