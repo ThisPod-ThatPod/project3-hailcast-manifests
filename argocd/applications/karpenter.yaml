@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+
+  sources:
+    - repoURL: public.ecr.aws/karpenter
+      chart: karpenter
+      targetRevision: 1.14.0
+      helm:
+        releaseName: karpenter
+        valueFiles:
+          - $values/addons/karpenter/values.yaml
+
+    - repoURL: https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git
+      targetRevision: main
+      ref: values
+      path: addons/karpenter
+      directory:
+        include: '{ec2nodeclass.yaml,nodepool.yaml}'
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
