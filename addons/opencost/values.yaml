@@ -1,0 +1,19 @@
+opencost:
+  mcp:
+    enabled: false
+
+  exporter:
+    defaultClusterId: hailcast-dev-eks
+
+  metrics:
+    kubeStateMetrics:
+      emitKsmV1Metrics: false
+      emitKsmV1MetricsOnly: false
+    serviceMonitor:
+      enabled: true
+
+  prometheus:
+    internal:
+      serviceName: kube-prometheus-stack-prometheus
+      namespaceName: monitoring
+      port: 9090
