@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: Hailcast
+
+configMapGenerator:
+  - name: hailcast-grafana-dashboards
+    files:
+      - 01-predict-scaling.json
+      - 02-queue-keda.json
+      - 03-worker-kubernetes.json
+      - 99-closed-loop-executive.json
