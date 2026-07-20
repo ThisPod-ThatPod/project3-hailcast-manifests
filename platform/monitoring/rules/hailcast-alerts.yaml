@@ -1,0 +1,128 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hailcast-platform-rules
+  namespace: monitoring
+spec:
+  groups:
+    - name: hailcast.platform
+      rules:
+        - alert: HailcastPodNotReady
+          expr: |
+            max by (namespace, pod) (
+              (
+                kube_pod_status_phase{
+                  namespace="hailcast",
+                  phase=~"Pending|Unknown"
+                } == 1
+                or
+                (
+                  kube_pod_status_phase{
+                    namespace="hailcast",
+                    phase="Running"
+                  } == 1
+                  and on (namespace, pod)
+                  kube_pod_status_ready{
+                    namespace="hailcast",
+                    condition="true"
+                  } == 0
+                )
+              )
+              unless on (namespace, pod)
+              kube_pod_owner{
+                namespace="hailcast",
+                owner_kind="Job"
+              }
+            ) > 0
+          for: 15m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast pod is not ready
+            description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has remained non-ready for more than 15 minutes.
+
+        - alert: HailcastDeploymentReplicasMismatch
+          expr: |
+            kube_deployment_spec_replicas{
+              namespace="hailcast"
+            }
+              != on (namespace, deployment)
+            kube_deployment_status_replicas_available{
+              namespace="hailcast"
+            }
+          for: 10m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast deployment replica mismatch
+            description: Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has not reached its desired available replica count for 10 minutes.
+
+        - alert: HailcastContainerCrashLooping
+          expr: |
+            kube_pod_container_status_waiting_reason{
+              namespace="hailcast",
+              reason="CrashLoopBackOff"
+            } == 1
+          for: 5m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast container is crash looping
+            description: Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has remained in CrashLoopBackOff for 5 minutes.
+
+        - alert: HailcastContainerHighMemory
+          expr: |
+            (
+              max by (namespace, pod, container) (
+                container_memory_working_set_bytes{
+                  namespace="hailcast",
+                  container!="",
+                  container!="POD",
+                  image!=""
+                }
+              )
+              /
+              on (namespace, pod, container)
+              max by (namespace, pod, container) (
+                kube_pod_container_resource_limits{
+                  namespace="hailcast",
+                  resource="memory",
+                  unit="byte"
+                } > 0
+              )
+            ) > 0.9
+          for: 15m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast container memory usage is high
+            description: Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has used more than 90% of its memory limit for 15 minutes.
+
+        - alert: HailcastPrometheusTargetDown
+          expr: up{namespace="hailcast"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast Prometheus scrape target is down
+            description: Prometheus target {{ $labels.job }}/{{ $labels.instance }} for service {{ $labels.service }} in namespace {{ $labels.namespace }} has been down for 5 minutes.
+
+        - alert: HailcastHPAScalingInactive
+          expr: |
+            kube_horizontalpodautoscaler_status_condition{
+              namespace="hailcast",
+              condition="ScalingActive",
+              status="false"
+            } == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast HPA cannot calculate desired replicas
+            description: HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }} has reported ScalingActive=false for 10 minutes and cannot calculate desired replicas from a valid metric.
