@@ -18,3 +18,8 @@ spec:
         awsRegion: ap-northeast-2
       authenticationRef:
         name: hailcast-keda-auth
+
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"
