@@ -67,7 +67,7 @@ alertmanager:
       - target_matchers:
           - 'alertname = "InfoInhibitor"'
     route:
-      receiver: telegram
+      receiver: "null"
       group_by:
         - alertname
         - namespace
@@ -81,6 +81,10 @@ alertmanager:
         - receiver: "null"
           matchers:
             - 'alertname = "InfoInhibitor"'
+        - receiver: telegram
+          matchers:
+            - 'component = "platform"'
+            - 'severity =~ "warning|critical"'
     receivers:
       - name: "null"
       - name: telegram
