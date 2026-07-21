@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git
-    targetRevision: main
+    targetRevision: dev
     path: platform/monitoring
   destination:
     server: https://kubernetes.default.svc

@@ -42,7 +42,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  up{namespace=\"$namespace\",service=\"$predict_service\"}\n  or\n  up{namespace=\"$namespace\",job=~\".*predict.*\"}\n)",
+          "expr": "min(\n  up{namespace=\"$namespace\",service=\"$predict_service\"}\n  or\n  up{namespace=\"$namespace\",job=~\".*predict.*\"}\n)\nor vector(0)",
           "legendFormat": "Predict Up",
           "refId": "A"
         }
@@ -120,7 +120,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_status_replicas_available{\n    namespace=\"keda\",\n    deployment=\"keda-operator\"\n  }\n) > bool 0",
+          "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
           "legendFormat": "KEDA Operator",
           "refId": "A"
         }
@@ -314,7 +314,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
           "legendFormat": "Ready Nodes",
           "refId": "A"
         }
@@ -360,7 +360,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 15
       },
       "panels": []
     },
@@ -377,7 +377,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -433,7 +433,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -489,7 +489,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -541,7 +541,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 23
       },
       "panels": []
     },
@@ -558,7 +558,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 17
+        "y": 24
       },
       "targets": [
         {
@@ -614,7 +614,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 17
+        "y": 24
       },
       "targets": [
         {
@@ -670,7 +670,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 17
+        "y": 24
       },
       "targets": [
         {
@@ -722,7 +722,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 31
       },
       "panels": []
     },
@@ -739,7 +739,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 25
+        "y": 32
       },
       "targets": [
         {
@@ -795,7 +795,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 25
+        "y": 32
       },
       "targets": [
         {
@@ -851,7 +851,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 25
+        "y": 32
       },
       "targets": [
         {
@@ -859,7 +859,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
           "legendFormat": "Pending",
           "refId": "A"
         }
@@ -905,7 +905,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 39
       },
       "panels": []
     },
@@ -922,7 +922,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 33
+        "y": 40
       },
       "targets": [
         {
@@ -930,7 +930,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
           "legendFormat": "Ready Nodes",
           "refId": "A"
         }
@@ -978,7 +978,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 33
+        "y": 40
       },
       "targets": [
         {
@@ -1034,7 +1034,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 33
+        "y": 40
       },
       "targets": [
         {
@@ -1042,7 +1042,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 *\navg(\n  1 -\n  (\n    node_memory_MemAvailable_bytes\n    /\n    node_memory_MemTotal_bytes\n  )\n)",
+          "expr": "100 *\n(\n  1 -\n  (\n    sum(node_memory_MemAvailable_bytes)\n    /\n    sum(node_memory_MemTotal_bytes)\n  )\n)",
           "legendFormat": "Cluster Memory",
           "refId": "A"
         }
