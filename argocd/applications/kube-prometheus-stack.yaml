@@ -16,7 +16,7 @@ spec:
         valueFiles:
           - $values/addons/kube-prometheus-stack/values.yaml
     - repoURL: https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git
-      targetRevision: main
+      targetRevision: dev
       ref: values
   destination:
     server: https://kubernetes.default.svc
