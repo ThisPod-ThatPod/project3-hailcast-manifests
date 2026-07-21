@@ -41,18 +41,26 @@ spec:
               value: "hailcast-dev-model-artifacts-fbd3700f"
             - name: SQS_QUEUE_URL
               value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
+            - name: KEDA_SCALEDOBJECT_NAME
+              value: "hailcast-worker-scaler"
+            - name: WORKER_DEPLOYMENT_NAME
+              value: "hailcast-worker"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "hailcast"
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
-                  name: hailcast-secret
+                  name: hailcast-rds-secret
                   key: DB_HOST
-            - name: DB_USERNAME
+            - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: hailcast-secret
-                  key: DB_USERNAME
+                  name: hailcast-rds-secret
+                  key: DB_USER
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hailcast-secret
+                  name: hailcast-rds-secret
                   key: DB_PASSWORD

@@ -312,7 +312,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 15
       },
       "panels": []
     },
@@ -329,7 +329,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -337,7 +337,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Running\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Running\"\n  }\n)",
           "legendFormat": "Running",
           "refId": "A"
         }
@@ -387,7 +387,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -395,7 +395,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
           "legendFormat": "Pending",
           "refId": "A"
         }
@@ -445,7 +445,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -501,7 +501,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 16
+        "y": 23
       },
       "targets": [
         {
@@ -561,7 +561,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 30
       },
       "panels": []
     },
@@ -578,7 +578,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 17
+        "y": 31
       },
       "targets": [
         {
@@ -634,7 +634,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 17
+        "y": 31
       },
       "targets": [
         {
@@ -690,7 +690,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 17
+        "y": 31
       },
       "targets": [
         {
@@ -750,7 +750,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 38
       },
       "panels": []
     },
@@ -767,7 +767,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 25
+        "y": 39
       },
       "targets": [
         {
@@ -775,7 +775,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
           "legendFormat": "Ready Nodes",
           "refId": "A"
         }
@@ -825,7 +825,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 25
+        "y": 39
       },
       "targets": [
         {
@@ -833,7 +833,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=~\"false|unknown\"\n  } == 1\n)",
+          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=~\"false|unknown\"\n  }\n)",
           "legendFormat": "NotReady Nodes",
           "refId": "A"
         }
@@ -883,7 +883,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 25
+        "y": 39
       },
       "targets": [
         {
@@ -891,7 +891,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_spec_unschedulable == 1\n)",
+          "expr": "sum(\n  kube_node_spec_unschedulable\n)",
           "legendFormat": "Unschedulable Nodes",
           "refId": "A"
         }
@@ -941,7 +941,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 32
+        "y": 46
       },
       "targets": [
         {
@@ -997,7 +997,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 32
+        "y": 46
       },
       "targets": [
         {
@@ -1053,7 +1053,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 32
+        "y": 46
       },
       "targets": [
         {
@@ -1111,7 +1111,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 39
+        "y": 53
       },
       "targets": [
         {

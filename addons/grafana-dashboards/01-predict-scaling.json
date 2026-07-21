@@ -42,7 +42,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  up{namespace=\"$namespace\",service=\"$predict_service\"}\n  or\n  up{namespace=\"$namespace\",job=~\".*predict.*\"}\n)",
+          "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
           "legendFormat": "Predict Up",
           "refId": "A"
         }
@@ -120,7 +120,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  up{namespace=\"$namespace\",service=\"$predict_service\"}\n  or\n  up{namespace=\"$namespace\",job=~\".*predict.*\"}\n) == bool 0",
+          "expr": "(\n  min(\n    up{\n      namespace=\"$namespace\",\n      service=\"$predict_service\"\n    }\n  ) or vector(0)\n) == bool 0",
           "legendFormat": "Predict Target Down",
           "refId": "A"
         }
@@ -300,7 +300,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 15
       },
       "panels": []
     },
@@ -317,7 +317,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -373,7 +373,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -429,7 +429,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {

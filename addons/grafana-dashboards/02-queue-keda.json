@@ -156,7 +156,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  deriv(\n    hailcast_queue_size{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[5m]\n  )\n)",
+          "expr": "max(\n  hailcast_queue_size{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\"\n  }\n)\n-\nmax(\n  hailcast_queue_size{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\"\n  } offset 5m\n)",
           "legendFormat": "Queue Change",
           "refId": "A"
         }
@@ -278,7 +278,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 15
       },
       "panels": []
     },
@@ -295,7 +295,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -351,7 +351,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -407,7 +407,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 9
+        "y": 16
       },
       "targets": [
         {
@@ -465,7 +465,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 16
+        "y": 23
       },
       "targets": [
         {
@@ -523,7 +523,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 16
+        "y": 23
       },
       "targets": [
         {
@@ -531,7 +531,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_status_replicas_available{\n    namespace=\"keda\",\n    deployment=\"keda-operator\"\n  }\n) > bool 0",
+          "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
           "legendFormat": "KEDA Operator",
           "refId": "A"
         }
