@@ -22,3 +22,19 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true # ⑨ Predict와 동일하게 네임스페이스 생성 옵션 추가
+      - RespectIgnoreDifferences=true
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: hailcast-worker
+      namespace: hailcast
+      jsonPointers:
+        - /spec/replicas
+
+    - group: keda.sh
+      kind: ScaledObject
+      name: hailcast-worker-scaler
+      namespace: hailcast
+      jsonPointers:
+        - /spec/minReplicaCount
