@@ -18,7 +18,7 @@ spec:
       serviceAccountName: predict-sa
       containers:
         - name: predict
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:52d492f # 수동 치환 완료
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:eecf79d # 수동 치환 완료
           ports:
             - containerPort: 8003
               name: http
