@@ -18,7 +18,7 @@ spec:
       serviceAccountName: worker-sa
       containers:
         - name: worker
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:52d492f # 수동 치환 완료
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:eecf79d # 수동 치환 완료
           resources: # ⑧ Karpenter 오토스케일링 시연용 
             requests:
               cpu: "250m"
