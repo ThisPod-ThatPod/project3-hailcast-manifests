@@ -33,22 +33,26 @@ spec:
                 namespace="hailcast",
                 owner_kind="Job"
               }
+              unless on (namespace, pod)
+              kube_pod_deletion_timestamp{
+                namespace="hailcast"
+              }
             ) > 0
           for: 15m
           labels:
             severity: warning
             component: platform
           annotations:
-            summary: Hailcast pod is not ready
+            summary: Hailcast Pod is not ready
             description: Pod {{ $labels.namespace }}/{{ $labels.pod }} has remained non-ready for more than 15 minutes.
 
         - alert: HailcastDeploymentReplicasMismatch
           expr: |
-            kube_deployment_spec_replicas{
+            kube_deployment_status_replicas_available{
               namespace="hailcast"
             }
-              != on (namespace, deployment)
-            kube_deployment_status_replicas_available{
+              < on (namespace, deployment)
+            kube_deployment_spec_replicas{
               namespace="hailcast"
             }
           for: 10m
@@ -56,7 +60,7 @@ spec:
             severity: warning
             component: platform
           annotations:
-            summary: Hailcast deployment replica mismatch
+            summary: Hailcast Deployment has unavailable replicas
             description: Deployment {{ $labels.namespace }}/{{ $labels.deployment }} has not reached its desired available replica count for 10 minutes.
 
         - alert: HailcastContainerCrashLooping
@@ -109,8 +113,18 @@ spec:
             severity: critical
             component: platform
           annotations:
-            summary: Hailcast Prometheus scrape target is down
-            description: Prometheus target {{ $labels.job }}/{{ $labels.instance }} for service {{ $labels.service }} in namespace {{ $labels.namespace }} has been down for 5 minutes.
+            summary: Hailcast Prometheus target is down
+            description: Prometheus target {{ $labels.job }}/{{ $labels.instance }} in namespace {{ $labels.namespace }} has been down for 5 minutes.
+
+        - alert: HailcastPrometheusTargetMissing
+          expr: absent(up{namespace="hailcast", service="predict"})
+          for: 10m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast Predict metrics target is missing
+            description: Prometheus has discovered no target for Service hailcast/predict for 10 minutes. Check the ServiceMonitor, Service, endpoints, and Prometheus selector configuration.
 
         - alert: HailcastHPAScalingInactive
           expr: |

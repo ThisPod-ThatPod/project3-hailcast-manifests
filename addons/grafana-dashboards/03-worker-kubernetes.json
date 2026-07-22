@@ -814,7 +814,7 @@
     },
     {
       "id": 18,
-      "title": "Node NotReady",
+      "title": "Node Not Ready",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -834,7 +834,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=~\"false|unknown\"\n  }\n)",
-          "legendFormat": "NotReady Nodes",
+          "legendFormat": "Not Ready Nodes",
           "refId": "A"
         }
       ],

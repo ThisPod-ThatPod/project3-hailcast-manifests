@@ -40,6 +40,43 @@ grafana:
 
 alertmanager:
   enabled: true
+  templateFiles:
+    telegram-hailcast.tmpl: |-
+      {{ define "telegram.hailcast.message" -}}
+      {{- if eq .Status "firing" -}}
+      <b>🔥 FIRING</b>
+      {{- else -}}
+      <b>✅ RESOLVED</b>
+      {{- end }}
+      <b>{{ printf "%.100s" .CommonLabels.alertname | html }}</b>
+
+      Firing: {{ len .Alerts.Firing }} · Resolved: {{ len .Alerts.Resolved }}
+      {{ range $index, $alert := .Alerts -}}
+      {{- if lt $index 4 }}
+
+      {{ if eq $alert.Status "firing" -}}🔥 <b>FIRING</b>{{ else -}}✅ <b>RESOLVED</b>{{ end }}
+      Severity: {{ printf "%.20s" $alert.Labels.severity | html }}
+      {{- if $alert.Labels.deployment }}
+      Deployment: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
+      {{- else if $alert.Labels.horizontalpodautoscaler }}
+      HPA: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.horizontalpodautoscaler | html }}
+      {{- else if $alert.Labels.pod }}
+      Pod: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.pod | html }}
+      {{- else if $alert.Labels.service }}
+      Service: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.service | html }}
+      {{- else if $alert.Labels.job }}
+      Target: {{ printf "%.120s" $alert.Labels.job | html }}/{{ printf "%.120s" $alert.Labels.instance | html }}
+      {{- end }}
+      {{- with $alert.Annotations.summary }}
+      Summary: {{ printf "%.120s" . | html }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- if gt (len .Alerts) 4 }}
+
+      … Additional alerts omitted (total: {{ len .Alerts }}).
+      {{- end }}
+      {{- end }}
   config:
     global:
       resolve_timeout: 5m
@@ -73,7 +110,7 @@ alertmanager:
         - namespace
       group_wait: 30s
       group_interval: 5m
-      repeat_interval: 12h
+      repeat_interval: 4h
       routes:
         - receiver: "null"
           matchers:
@@ -81,6 +118,13 @@ alertmanager:
         - receiver: "null"
           matchers:
             - 'alertname = "InfoInhibitor"'
+        - receiver: telegram
+          matchers:
+            - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
+        - receiver: telegram
+          matchers:
+            - 'alertname = "KubePersistentVolumeFillingUp"'
+            - 'namespace = "monitoring"'
         - receiver: telegram
           matchers:
             - 'component = "platform"'
@@ -92,6 +136,7 @@ alertmanager:
           - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/bot-token
             chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat-id
             parse_mode: HTML
+            message: '{{ template "telegram.hailcast.message" . }}'
             send_resolved: true
   alertmanagerSpec:
     secrets:
