@@ -2,7 +2,7 @@
 # IRSA로 AWS Secrets Manager/Parameter Store 접근
 # SA 이름(external-secrets)·네임스페이스(external-secrets)는
 # platform/external-secrets/secretstore.yaml의 serviceAccountRef와 반드시 일치해야 함
-installCRDs: true
+installCRDs: false
 
 serviceAccount:
   create: true
