@@ -28,9 +28,37 @@ spec:
           values:
             - spot
 
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values:
+            - t
+            - m
+            - c
+
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gte
+          values:
+            - "3"
+
+        - key: karpenter.k8s.aws/instance-cpu
+          operator: In
+          values:
+            - "2"
+
+        - key: karpenter.k8s.aws/instance-memory
+          operator: Gte
+          values:
+            - "2048"
+
+        - key: karpenter.k8s.aws/instance-memory
+          operator: Lte
+          values:
+            - "8192"
+
   limits:
     cpu: "100"
 
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 30s
+    
