@@ -1,0 +1,16 @@
+clusterName: hailcast-dev-eks
+region: ap-northeast-2
+vpcId: vpc-07eda15b0abd707a0
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::797452357900:role/hailcast-dev-irsa-lbctrl"
+
+resources: # 다른 addon과 동일하게 Karpenter가 크기를 인식하도록 requests 명시
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    memory: "256Mi"
