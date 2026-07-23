@@ -25,7 +25,7 @@ spec:
       http:
         paths:
           - path: /api/*
-             pathType: ImplementationSpecific
+            pathType: ImplementationSpecific
             backend:
               service:
                 # app repo k8s/call-api-deployment.yaml 참고
