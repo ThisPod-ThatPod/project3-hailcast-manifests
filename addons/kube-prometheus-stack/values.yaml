@@ -77,6 +77,38 @@ alertmanager:
       … Additional alerts omitted (total: {{ len .Alerts }}).
       {{- end }}
       {{- end }}
+    discord-hailcast.tmpl: |-
+      {{ define "discord.hailcast.title" -}}
+      {{- if eq .Status "firing" -}}🔥 FIRING{{- else -}}✅ RESOLVED{{- end }} — {{ printf "%.100s" .CommonLabels.alertname }}
+      {{- end }}
+      {{ define "discord.hailcast.message" -}}
+      Firing: {{ len .Alerts.Firing }} · Resolved: {{ len .Alerts.Resolved }}
+      {{ range $index, $alert := .Alerts -}}
+      {{- if lt $index 4 }}
+
+      {{ if eq $alert.Status "firing" -}}🔥 **FIRING**{{ else -}}✅ **RESOLVED**{{ end }}
+      Severity: {{ printf "%.20s" $alert.Labels.severity }}
+      {{- if $alert.Labels.deployment }}
+      Deployment: {{ printf "%.63s" $alert.Labels.namespace }}/{{ printf "%.120s" $alert.Labels.deployment }}
+      {{- else if $alert.Labels.horizontalpodautoscaler }}
+      HPA: {{ printf "%.63s" $alert.Labels.namespace }}/{{ printf "%.120s" $alert.Labels.horizontalpodautoscaler }}
+      {{- else if $alert.Labels.pod }}
+      Pod: {{ printf "%.63s" $alert.Labels.namespace }}/{{ printf "%.120s" $alert.Labels.pod }}
+      {{- else if $alert.Labels.service }}
+      Service: {{ printf "%.63s" $alert.Labels.namespace }}/{{ printf "%.120s" $alert.Labels.service }}
+      {{- else if $alert.Labels.job }}
+      Target: {{ printf "%.120s" $alert.Labels.job }}/{{ printf "%.120s" $alert.Labels.instance }}
+      {{- end }}
+      {{- with $alert.Annotations.summary }}
+      Summary: {{ printf "%.120s" . }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- if gt (len .Alerts) 4 }}
+
+      … Additional alerts omitted (total: {{ len .Alerts }}).
+      {{- end }}
+      {{- end }}
   config:
     global:
       resolve_timeout: 5m
@@ -118,29 +150,35 @@ alertmanager:
         - receiver: "null"
           matchers:
             - 'alertname = "InfoInhibitor"'
-        - receiver: telegram
+        - receiver: telegram-discord
           matchers:
             - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
-        - receiver: telegram
+        - receiver: telegram-discord
           matchers:
             - 'alertname = "KubePersistentVolumeFillingUp"'
             - 'namespace = "monitoring"'
-        - receiver: telegram
+        - receiver: telegram-discord
           matchers:
             - 'component = "platform"'
             - 'severity =~ "warning|critical"'
     receivers:
       - name: "null"
-      - name: telegram
+      - name: telegram-discord
         telegram_configs:
           - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/bot-token
             chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat-id
             parse_mode: HTML
             message: '{{ template "telegram.hailcast.message" . }}'
             send_resolved: true
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
+            title: '{{ template "discord.hailcast.title" . }}'
+            message: '{{ template "discord.hailcast.message" . }}'
+            send_resolved: true
   alertmanagerSpec:
     secrets:
       - alertmanager-telegram
+      - alertmanager-discord
     storage: {}
 
 prometheus:
