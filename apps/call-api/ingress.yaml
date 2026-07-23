@@ -12,6 +12,7 @@ metadata:
     alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:797452357900:certificate/f874ce9a-56d7-47a5-9819-12508db8e596"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/group.name: hailcast-dev
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
     # 비용관리 런북 §3-4: ALB는 런타임 생성이라 default_tags가 안 붙어서 어노테이션 필수
     alb.ingress.kubernetes.io/tags: "Project=hailcast,Environment=dev"
 spec:
