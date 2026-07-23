@@ -79,8 +79,7 @@ alertmanager:
       {{- end }}
     discord-hailcast.tmpl: |-
       {{ define "discord.hailcast.title" -}}
-      {{- if eq .Status "firing" -}}🔥 FIRING{{- else -}}✅ RESOLVED{{- end -}}
-      — {{ printf "%.100s" .CommonLabels.alertname }}
+      {{- if eq .Status "firing" -}}🔥 FIRING{{- else -}}✅ RESOLVED{{- end }} — {{ printf "%.100s" .CommonLabels.alertname }}
       {{- end }}
       {{ define "discord.hailcast.message" -}}
       Firing: {{ len .Alerts.Firing }} · Resolved: {{ len .Alerts.Resolved }}
