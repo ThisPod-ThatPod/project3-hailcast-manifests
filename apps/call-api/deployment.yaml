@@ -18,7 +18,7 @@ spec:
       serviceAccountName: call-api-sa
       containers:
         - name: call-api
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:34e7121
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:8ba00b1
           ports:
             - containerPort: 8000
               name: http
