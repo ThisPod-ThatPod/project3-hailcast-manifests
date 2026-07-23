@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Overall Status",
+      "title": "Runtime Summary",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -29,10 +29,10 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Prometheus가 Predict service target을 scrape할 수 있는지 표시한다. Prediction 생성, freshness 또는 정확도를 검증하지 않는다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 5,
         "x": 0,
         "y": 1
       },
@@ -42,9 +42,11 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "min(\n  up{namespace=\"$namespace\",service=\"$predict_service\"}\n  or\n  up{namespace=\"$namespace\",job=~\".*predict.*\"}\n)\nor vector(0)",
+          "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
           "legendFormat": "Predict Up",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
@@ -85,7 +87,7 @@
       },
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -95,7 +97,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
@@ -107,11 +109,11 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "kube-state-metrics 기준 KEDA operator Deployment에 available replica가 있는지 표시한다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
+        "w": 5,
+        "x": 5,
         "y": 1
       },
       "targets": [
@@ -122,7 +124,9 @@
           },
           "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
           "legendFormat": "KEDA Operator",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
@@ -163,7 +167,7 @@
       },
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -173,23 +177,23 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
     {
-      "id": 4,
-      "title": "Queue Backlog",
+      "id": 24,
+      "title": "Applied Scaling Baseline",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. ScaledObject spec.minReplicaCount 원본이나 prediction 값이 아니다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 16,
+        "w": 5,
+        "x": 10,
         "y": 1
       },
       "targets": [
@@ -198,30 +202,26 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  hailcast_queue_size{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\"\n  }\n)",
-          "legendFormat": "Queue",
-          "refId": "A"
+          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "Applied baseline",
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
+        "colorMode": "none",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -231,7 +231,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
@@ -243,12 +243,12 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "kube-state-metrics가 보고한 Worker Deployment의 Ready replica 수다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 8
+        "w": 5,
+        "x": 15,
+        "y": 1
       },
       "targets": [
         {
@@ -258,28 +258,24 @@
           },
           "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
           "legendFormat": "Ready Workers",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
+        "colorMode": "none",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -289,24 +285,24 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
     {
-      "id": 6,
-      "title": "Ready Node Count",
+      "id": 25,
+      "title": "Baseline Readiness Gap",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "적용된 HPA baseline에서 Worker Ready를 뺀 부족분이다. 0은 baseline 충족, 1 이상은 readiness gap을 의미한다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 8
+        "w": 4,
+        "x": 20,
+        "y": 1
       },
       "targets": [
         {
@@ -314,30 +310,50 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
-          "legendFormat": "Ready Nodes",
-          "refId": "A"
+          "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
+          "legendFormat": "Readiness gap",
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "mappings": [],
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "Satisfied"
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
+          },
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -347,37 +363,37 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
     {
       "id": 7,
-      "title": "Prediction & Scaling",
+      "title": "Scaling Timeline",
       "type": "row",
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 8
       },
       "panels": []
     },
     {
-      "id": 8,
-      "title": "Scaling Total",
+      "id": 26,
+      "title": "Queue / HPA / Worker",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "동일 시간축에서 queue backlog, 적용 baseline, HPA desired/current, Worker Ready의 반응을 비교한다. Queue는 오른쪽 축, replica 계열은 왼쪽 축이다.",
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "h": 10,
+        "w": 16,
         "x": 0,
-        "y": 16
+        "y": 9
       },
       "targets": [
         {
@@ -385,473 +401,140 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  increase(\n    hailcast_scaling_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scaling Events",
+          "expr": "max(hailcast_queue_size{namespace=\"$namespace\"})",
+          "legendFormat": "Queue backlog",
           "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "title": "Scale Up Events",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 16
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  increase(\n    hailcast_scale_up_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scale Up",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "Applied baseline",
+          "refId": "B"
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 10,
-      "title": "Scale Down Events",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 16
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  increase(\n    hailcast_scale_down_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scale Down",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "HPA desired",
+          "refId": "C"
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "title": "Queue & HPA",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 23
-      },
-      "panels": []
-    },
-    {
-      "id": 12,
-      "title": "Queue Backlog",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 24
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  hailcast_queue_size{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\"\n  }\n)",
-          "legendFormat": "Queue Backlog",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "expr": "max(\n  kube_horizontalpodautoscaler_status_current_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "HPA current",
+          "refId": "D"
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 13,
-      "title": "HPA Current Replica",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 24
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_current_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=~\"keda-hpa-.*worker.*\"\n  }\n)",
-          "legendFormat": "HPA Current",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 14,
-      "title": "HPA Desired Replica",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 24
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=~\"keda-hpa-.*worker.*\"\n  }\n)",
-          "legendFormat": "HPA Desired",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 15,
-      "title": "Worker",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
-      "panels": []
-    },
-    {
-      "id": 16,
-      "title": "Worker Desired Replica",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 32
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Desired",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 17,
-      "title": "Worker Ready Replica",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 32
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Ready",
-          "refId": "A"
+          "legendFormat": "Worker ready",
+          "refId": "E"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Queue backlog"
+            },
+            "properties": [
               {
-                "color": "green",
-                "value": null
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 18
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 18,
-      "title": "Pending Worker Pods",
-      "type": "stat",
+      "id": 27,
+      "title": "Pending Worker / Ready Node",
+      "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Pending Worker와 Ready Node 수를 같은 시간축에서 비교한다. Pending Worker가 1 이상이면 scheduling 지연 가능성을 점검해야 한다. NodeClaim을 직접 관측하는 패널은 아니다.",
       "gridPos": {
-        "h": 7,
+        "h": 10,
         "w": 8,
         "x": 16,
-        "y": 32
+        "y": 9
       },
       "targets": [
         {
@@ -860,125 +543,104 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
-          "legendFormat": "Pending",
+          "legendFormat": "Pending worker",
           "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 19,
-      "title": "Nodes",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 39
-      },
-      "panels": []
-    },
-    {
-      "id": 20,
-      "title": "Ready Node Count",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 40
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
-          "legendFormat": "Ready Nodes",
-          "refId": "A"
+          "legendFormat": "Ready nodes",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "decimals": 0,
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           }
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 21,
-      "title": "Cluster CPU",
+      "id": 11,
+      "title": "Kubernetes Allocation Estimate",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "panels": []
+    },
+    {
+      "id": 28,
+      "title": "Worker / Namespace Allocation — OpenCost Estimate ($/h)",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "OpenCost의 Worker 및 hailcast namespace CPU/RAM allocation과 modeled node rates를 비교한다. AWS invoice 또는 realized savings가 아니다.",
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 40
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 20
       },
       "targets": [
         {
@@ -986,55 +648,92 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 *\n(\n  1 -\n  avg(\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])\n  )\n)",
-          "legendFormat": "Cluster CPU",
+          "expr": "sum(\n  container_cpu_allocation{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    container=\"worker\"\n  }\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
+          "legendFormat": "Worker allocation estimate",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(\n  container_cpu_allocation{namespace=\"$namespace\"}\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{namespace=\"$namespace\"}\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
+          "legendFormat": "Hailcast namespace allocation estimate",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "unit": "currencyUSD",
+          "decimals": 3,
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           }
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 22,
-      "title": "Cluster Memory",
+      "id": 29,
+      "title": "Total / Spot Node Modeled Hourly Cost",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "OpenCost의 전체 Node 및 Spot Node modeled hourly cost를 비교한다. AWS invoice 또는 realized savings가 아니다.",
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 40
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 20
       },
       "targets": [
         {
@@ -1042,38 +741,75 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 *\n(\n  1 -\n  (\n    sum(node_memory_MemAvailable_bytes)\n    /\n    sum(node_memory_MemTotal_bytes)\n  )\n)",
-          "legendFormat": "Cluster Memory",
+          "expr": "sum(node_total_hourly_cost)",
+          "legendFormat": "Total node modeled cost",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(\n  node_total_hourly_cost\n  * on(node)\n  kubecost_node_is_spot\n)",
+          "legendFormat": "Spot node modeled cost",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
+          "unit": "currencyUSD",
+          "decimals": 3,
           "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           }
         },
         "overrides": []
       },
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     }
@@ -1082,9 +818,9 @@
   "schemaVersion": 41,
   "tags": [
     "hailcast",
-    "closed-loop",
-    "executive",
-    "mvp"
+    "scaling-baseline",
+    "runtime-verification",
+    "allocation-estimate"
   ],
   "templating": {
     "list": [
@@ -1136,7 +872,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "99 Closed Loop Executive",
+  "title": "99 Predictive Scaling Baseline — Runtime Verification",
   "uid": "hailcast-99-closed-loop",
   "version": 1,
   "weekStart": ""

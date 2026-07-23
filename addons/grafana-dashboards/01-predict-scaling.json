@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Predict Health",
+      "title": "Runtime Summary",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -29,10 +29,10 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Prometheus가 Predict service target을 scrape할 수 있는지 표시한다. Prediction 생성, freshness 또는 정확도를 검증하지 않는다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 5,
         "x": 0,
         "y": 1
       },
@@ -44,7 +44,9 @@
           },
           "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
           "legendFormat": "Predict Up",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
@@ -85,7 +87,7 @@
       },
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -95,23 +97,23 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
     {
-      "id": 3,
-      "title": "Predict Target Down",
+      "id": 4,
+      "title": "Predict Pod Ready",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "kube-state-metrics가 보고한 Predict Pod Ready 수다. Prediction 결과의 유효성을 의미하지 않는다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
+        "w": 5,
+        "x": 5,
         "y": 1
       },
       "targets": [
@@ -120,9 +122,173 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(\n  min(\n    up{\n      namespace=\"$namespace\",\n      service=\"$predict_service\"\n    }\n  ) or vector(0)\n) == bool 0",
-          "legendFormat": "Predict Target Down",
-          "refId": "A"
+          "expr": "sum(\n  kube_pod_status_ready{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\",\n    condition=\"true\"\n  }\n)",
+          "legendFormat": "Ready Pods",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 10,
+      "title": "Applied Scaling Baseline",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. ScaledObject spec.minReplicaCount 원본이나 prediction 값이 아니다.",
+      "gridPos": {
+        "h": 7,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "Applied baseline",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 11,
+      "title": "Worker Ready",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "kube-state-metrics가 보고한 Worker Deployment의 Ready replica 수다.",
+      "gridPos": {
+        "h": 7,
+        "w": 5,
+        "x": 15,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Worker ready",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 12,
+      "title": "Baseline Readiness Gap",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "적용된 HPA baseline에서 Worker Ready를 뺀 부족분이다. 0은 baseline 충족, 1 이상은 readiness gap을 의미한다.",
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
+          "legendFormat": "Readiness gap",
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
       "fieldConfig": {
@@ -135,12 +301,7 @@
                 "0": {
                   "color": "green",
                   "index": 0,
-                  "text": "Healthy"
-                },
-                "1": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "Down"
+                  "text": "Satisfied"
                 }
               }
             }
@@ -157,13 +318,16 @@
                 "value": 1
               }
             ]
+          },
+          "color": {
+            "mode": "thresholds"
           }
         },
         "overrides": []
       },
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -173,67 +337,22 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
+        "textMode": "value_and_name",
         "wideLayout": true
       }
     },
     {
-      "id": 4,
-      "title": "Predict Pod Ready",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
+      "id": 6,
+      "title": "Predict Runtime Detail",
+      "type": "row",
+      "collapsed": false,
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 1
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
       },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_pod_status_ready{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\",\n    condition=\"true\"\n  }\n)",
-          "legendFormat": "Ready Pods",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "wideLayout": true
-      }
+      "panels": []
     },
     {
       "id": 5,
@@ -243,12 +362,12 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "각 시점에서 Grafana가 자동 계산한 구간의 Predict container restart 증가량을 표시한다. 선택한 전체 시간 범위의 누적 합계가 아니며, Restart가 없거나 series가 새로 생성된 경우 0 또는 No Data일 수 있다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 24,
         "x": 0,
-        "y": 8
+        "y": 9
       },
       "targets": [
         {
@@ -261,202 +380,12 @@
           "refId": "A"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
+    "fieldConfig": {
+      "defaults": {
+        "unit": "short",
+        "mappings": []
       },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 6,
-      "title": "Scaling Events",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 15
-      },
-      "panels": []
-    },
-    {
-      "id": 7,
-      "title": "Scaling Total",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 16
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  increase(\n    hailcast_scaling_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scaling Events",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 8,
-      "title": "Scale Up Events",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 16
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  increase(\n    hailcast_scale_up_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scale Up",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "title": "Scale Down Events",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 16
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  increase(\n    hailcast_scale_down_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Scale Down",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
+      "overrides": []
       },
       "options": {
         "legend": {
@@ -478,8 +407,8 @@
   "tags": [
     "hailcast",
     "predict",
-    "scaling",
-    "mvp"
+    "scaling-baseline",
+    "runtime-verification"
   ],
   "templating": {
     "list": [
@@ -531,7 +460,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "01 Predict & Scaling",
+  "title": "01 Predictive Scaling Baseline — Runtime Verification",
   "uid": "hailcast-01-predict-scaling",
   "version": 1,
   "weekStart": ""
