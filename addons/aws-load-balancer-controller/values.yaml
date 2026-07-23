@@ -1,4 +1,6 @@
 clusterName: hailcast-dev-eks
+region: ap-northeast-2
+vpcId: vpc-07eda15b0abd707a0
 
 serviceAccount:
   create: true
