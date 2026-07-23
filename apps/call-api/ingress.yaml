@@ -1,5 +1,8 @@
 # 배포팀 계약 변경(7/16 확정) 반영: 외부 진입점 단일화
 # 트래픽 흐름: CloudFront → ALB(이 Ingress가 생성) → call-api Service
+# 경로 규칙(7/23 팀 결정 - 나안): 앱이 라우터 접두어를 /api로 이동,
+# /api/*는 predict의 세 경로(/api/dashboard,scaling,prediction)보다
+# 뒤에 평가돼야 하므로 group.order를 predict(10)보다 큰 20으로 지정
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -12,6 +15,7 @@ metadata:
     alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:797452357900:certificate/f874ce9a-56d7-47a5-9819-12508db8e596"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/group.name: hailcast-dev
+    alb.ingress.kubernetes.io/group.order: "20"
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     # 비용관리 런북 §3-4: ALB는 런타임 생성이라 default_tags가 안 붙어서 어노테이션 필수
     alb.ingress.kubernetes.io/tags: "Project=hailcast,Environment=dev"
@@ -20,8 +24,8 @@ spec:
     - host: origin.hailcast.myminiinfra.store
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /api/*
+             pathType: ImplementationSpecific
             backend:
               service:
                 # app repo k8s/call-api-deployment.yaml 참고
