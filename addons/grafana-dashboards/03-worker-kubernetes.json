@@ -281,6 +281,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -410,6 +414,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -848,6 +856,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -906,6 +918,10 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -1193,17 +1209,6 @@
         "current": {
           "text": "hailcast-worker",
           "value": "hailcast-worker"
-        },
-        "hide": 0
-      },
-      {
-        "name": "predict_service",
-        "label": "Predict Service",
-        "type": "constant",
-        "query": "predict",
-        "current": {
-          "text": "predict",
-          "value": "predict"
         },
         "hide": 0
       }
