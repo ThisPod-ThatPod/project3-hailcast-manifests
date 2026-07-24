@@ -3,6 +3,10 @@
 # 경로 규칙(7/23 팀 결정 - 나안): 앱이 라우터 접두어를 /api로 이동,
 # /api/*는 predict의 세 경로(/api/dashboard,scaling,prediction)보다
 # 뒤에 평가돼야 하므로 group.order를 predict(10)보다 큰 20으로 지정
+#
+# simulator(7/24, 준한님 지시): 같은 Ingress 안의 paths는 위에서부터 평가되므로
+# /api/simulator/*를 /api/*(catch-all) 앞에 둔다. 순서가 바뀌면 시뮬레이터 요청이
+# catch-all에 먼저 걸려 call-api로 가서 404(엔드포인트 없음)가 난다.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -24,6 +28,13 @@ spec:
     - host: origin.hailcast.myminiinfra.store
       http:
         paths:
+          - path: /api/simulator/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: hailcast-simulator
+                port:
+                  number: 8001
           - path: /api/*
             pathType: ImplementationSpecific
             backend:
