@@ -1,0 +1,5 @@
+# dev는 봇(hailcast-ci[bot])이 이미지 태그를 상시 직접 push하는 대상이라
+# PR 필수를 걸 수 없다. 그 보완책으로, 사람이 apps/*/deployment.yaml을
+# PR로 고칠 때는 앱팀 리뷰가 자동 요청되게 한다.
+# (계기: #47 - 수동 태그 변경이 앱팀 확인 없이 지나간 사례)
+apps/*/deployment.yaml @CHANGWONLEE2000 @wodurl
