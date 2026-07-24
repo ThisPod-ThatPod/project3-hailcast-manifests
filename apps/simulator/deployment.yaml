@@ -1,0 +1,59 @@
+# simulator — replicas 1 고정 (시연 부하 발원지, 여러 개 뜨면 트래픽 카운트가 꼬임)
+# app repo k8s/simulator-deployment.yaml 참고, 우리 레포 스타일(개별 env)로 이관
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hailcast-simulator
+  namespace: hailcast
+  labels:
+    app: hailcast-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hailcast-simulator
+  template:
+    metadata:
+      labels:
+        app: hailcast-simulator
+    spec:
+      serviceAccountName: simulator-sa
+      containers:
+        - name: simulator
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:<GITHUB_SHA>
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: JSON_STORE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              value: "hailcast-dev-model-artifacts-fbd3700f"
+            # ⚠️ call-api 라우터가 /api 로 이동(7/24 팀 결정 - 나안)했으므로 /api 포함.
+            # simulator_service.py:relay_call 이 f"{call_api_url}/call" 로 조합해서 호출한다
+            # (app repo backend/simulator/services/simulator_service.py 확인).
+            # 빠뜨리면 relay가 옛 경로(/call)로 쏴서 404 → 트래픽 카운트가 조용히 0으로 돌아간다.
+            - name: CALL_API_URL
+              value: "http://hailcast-call-api:8000/api"
+          resources:
+            # app repo 참고([B-1, 2026-07-24] 실측): k6가 call-api를 직결하다 relay 경유로
+            # 바뀌면서 simulator 자신도 트래픽만큼 CPU를 쓰게 됨(전엔 거의 0).
+            # 200m/1000m·512Mi로도 600rps 피크에서 재시작(OOM 137, CPU 스로틀) 실측 → 상향.
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1280Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+            # app repo 참고: 최대부하(600rps)에서 이벤트루프가 순간적으로 밀리는 걸 실측함.
+            # 데모용 부하발생기라 잠깐의 지연을 "죽음"으로 취급하지 않도록 여유를 크게 둔다.
+            failureThreshold: 5
