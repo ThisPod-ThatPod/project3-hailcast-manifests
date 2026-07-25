@@ -1,0 +1,32 @@
+# 경로 규칙(7/23 팀 결정 - 나안): frontend는 catch-all(/)
+# ⚠️ group.order 필수 (준한님 PR#45 리뷰) — 명시 없으면 기본값 0이 되어
+# predict(10)·call-api(20)·simulator보다 먼저 평가된다. 그러면 /*가 모든
+# 요청을 먼저 삼켜서 /api/* 요청까지 프론트 HTML을 받는 조용한 실패가 된다.
+# 반드시 predict·call-api보다 큰 값(30)으로 가장 마지막에 평가되게 한다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: hailcast
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:797452357900:certificate/f874ce9a-56d7-47a5-9819-12508db8e596"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/group.name: hailcast-dev
+    alb.ingress.kubernetes.io/group.order: "30"
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/tags: "Project=hailcast,Environment=dev"
+spec:
+  rules:
+    - host: origin.hailcast.myminiinfra.store
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hailcast-frontend
+                port:
+                  number: 80
