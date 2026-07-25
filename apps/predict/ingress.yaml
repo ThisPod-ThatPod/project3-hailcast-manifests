@@ -19,22 +19,22 @@ spec:
     - host: origin.hailcast.myminiinfra.store
       http:
         paths:
-          - path: /api/dashboard/*
-            pathType: ImplementationSpecific
+          - path: /api/dashboard
+            pathType: Prefix
             backend:
               service:
                 name: predict
                 port:
                   number: 8003
-          - path: /api/scaling/*
-            pathType: ImplementationSpecific
+          - path: /api/scaling
+            pathType: Prefix
             backend:
               service:
                 name: predict
                 port:
                   number: 8003
-          - path: /api/prediction/*
-            pathType: ImplementationSpecific
+          - path: /api/prediction
+            pathType: Prefix
             backend:
               service:
                 name: predict
