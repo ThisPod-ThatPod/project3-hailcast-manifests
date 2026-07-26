@@ -1,0 +1,53 @@
+# weather-cron — Open-Meteo에서 NYC 예보를 4시간마다 수집해 S3 weather/*에 쓴다.
+# app repo k8s/weather-cron-deployment.yaml 참고, 우리 레포 스타일(개별 env)로 이관.
+#
+# 배포 방식: app repo 주석대로 Deployment 상시 루프 형태를 유지한다(앱이 내부
+# 스케줄러로 4시간 간격을 관리 — backend/weather-cron/schedulers). CronJob 전환은
+# 팀 미확정 사항이라 건드리지 않는다.
+#
+# 외부 노출 없음: 8002는 /healthz 프로브 전용이라 Ingress를 만들지 않는다.
+# (규약서 §8-5 경로 표에도 weather-cron 항목이 없다)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hailcast-weather-cron
+  namespace: hailcast
+  labels:
+    app: hailcast-weather-cron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hailcast-weather-cron
+  template:
+    metadata:
+      labels:
+        app: hailcast-weather-cron
+    spec:
+      serviceAccountName: weather-cron-sa
+      containers:
+        - name: weather-cron
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:<GITHUB_SHA>
+          ports:
+            - containerPort: 8002
+              name: http
+          env:
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: JSON_STORE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              value: "hailcast-dev-model-artifacts-fbd3700f"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
