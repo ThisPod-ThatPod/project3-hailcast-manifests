@@ -31,16 +31,9 @@ spec:
               value: "s3"
             - name: S3_BUCKET
               value: "hailcast-dev-model-artifacts-fbd3700f"
-            # ⚠️ call-api 라우터가 /api 로 이동(7/24 팀 결정 - 나안)했으므로 /api 포함.
-            # simulator_service.py:relay_call 이 f"{call_api_url}/call" 로 조합해서 호출한다
-            # (app repo backend/simulator/services/simulator_service.py 확인).
-            # 빠뜨리면 relay가 옛 경로(/call)로 쏴서 404 → 트래픽 카운트가 조용히 0으로 돌아간다.
             - name: CALL_API_URL
-              value: "http://hailcast-call-api:8000/api"
+              value: "http://hailcast-call-api:8000"
           resources:
-            # app repo 참고([B-1, 2026-07-24] 실측): k6가 call-api를 직결하다 relay 경유로
-            # 바뀌면서 simulator 자신도 트래픽만큼 CPU를 쓰게 됨(전엔 거의 0).
-            # 200m/1000m·512Mi로도 600rps 피크에서 재시작(OOM 137, CPU 스로틀) 실측 → 상향.
             requests:
               cpu: "300m"
               memory: "512Mi"
