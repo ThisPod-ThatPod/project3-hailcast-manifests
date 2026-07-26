@@ -1,23 +1,52 @@
 # =============================================================
 # 파일 위치 : project3-hailcast-manifests/Makefile
 # 소유      : 그룹 C (용빈·지윤)
-# 역할      : ops 의 make -C 위임을 받는 진입점(deploy/teardown).
-# 사용      : 이 레포에서  make deploy   /  ops 에서  make deploy
+# 역할      : Kubernetes·GitOps 검증 및 Argo CD 운영 진입점.
+# 사용      : 이 레포에서 make <target> / ops 에서 make -C manifests deploy
 # =============================================================
 
-# ★ 커스터마이징: 배포 방식(ArgoCD app-of-apps / helm)은 Phase 4 에서 채운다.
+.DEFAULT_GOAL := help
 
-.PHONY: help deploy teardown destroy
+.PHONY: help validate deploy-dry-run deploy status teardown destroy
 
-help:     ## 명령 목록
-	@echo "  make deploy | teardown"
+help: ## 명령 목록
+	@echo ""
+	@echo "====================================================="
+	@echo "  Hailcast manifests · Kubernetes/GitOps 운영 명령"
+	@echo "====================================================="
+	@echo ""
+	@echo "  [ 정적 검증 · AWS 자격증명/kubeconfig 불필요 ]"
+	@echo "  make validate   Dashboard JSON, kustomize, shell 구문, git diff 검사"
+	@echo ""
+	@echo "  [ 실클러스터 · 유효한 kubeconfig/EKS 인증 필요 ]"
+	@echo "  make deploy-dry-run  root Application 서버 검증만 수행 (클러스터 변경 없음)"
+	@echo "  make deploy          root가 없으면 실제 최초 등록 후 GitOps 상태 확인"
+	@echo "                       (root 외 workload/child Application은 직접 apply하지 않음)"
+	@echo "  make status          Argo CD Application 및 hailcast Deployment/Pod 읽기 전용 확인"
+	@echo ""
+	@echo "  [ 파괴 작업 ]"
+	@echo "  make teardown   기존 정리 스크립트 호출 (실제 삭제는 CONFIRM=yes 필요)"
+	@echo "                  현재 legacy 스크립트는 전체 삭제 완료를 보장하지 않으므로 잔존 확인 필요"
+	@echo "  make destroy    teardown 호환 별칭"
+	@echo ""
 
-deploy:   ## helm/ArgoCD 배포 (Phase 4에서 구현)
-	@echo "TODO(Phase 4): argocd app-of-apps 또는 helm install"
-	# 예) kubectl apply -f argocd/app-of-apps.yaml
+validate: ## 클러스터 없이 manifests 정적 검증
+	@bash scripts/validate.sh
 
-# K8s 워크로드·ALB 정리 (VPC destroy 를 막는 원인부터 제거 → teardown 최우선 단계)
-teardown: ## K8s 워크로드·ALB 정리 (scripts/teardown_manifest.sh)
-	@chmod +x scripts/teardown_manifest.sh && bash scripts/teardown_manifest.sh
+deploy-dry-run: validate ## root Application server-side dry-run (클러스터 변경 없음)
+	@echo "[deploy-dry-run] Argo CD root Application을 server-side dry-run으로 검증합니다."
+	@kubectl apply --dry-run=server -f argocd/app-of-apps.yaml
+	@echo "[deploy-dry-run] 서버 검증을 통과했습니다. 클러스터 리소스는 변경하지 않았습니다."
 
-destroy: teardown
+deploy: validate ## Argo CD root 최초 등록 또는 기존 GitOps 상태 확인
+	@bash scripts/deploy.sh
+
+status: ## Argo CD와 hailcast 핵심 리소스 상태 확인(읽기 전용)
+	@bash scripts/status.sh
+
+# 기존 Ops 및 직접 호출 계약을 유지한다. 삭제 로직은 이번 범위에서 재설계하지 않는다.
+teardown: ## 기존 K8s 정리 스크립트 호출 (CONFIRM=yes 필요, 잔존 확인 필수)
+	@echo "[WARN] legacy teardown 진입점입니다. 실행 후 Application/Ingress/LoadBalancer 잔존 여부를 확인하세요."
+	@bash scripts/teardown_manifest.sh
+
+destroy: teardown ## teardown 호환 별칭
