@@ -219,6 +219,10 @@
         "defaults": {
           "unit": "short",
           "mappings": [],
+          "min": 0,
+          "custom": {
+            "axisSoftMax": 1
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -470,6 +474,11 @@
         "defaults": {
           "unit": "short",
           "mappings": [],
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "axisSoftMax": 1
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [

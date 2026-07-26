@@ -97,7 +97,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
@@ -383,7 +383,12 @@
     "fieldConfig": {
       "defaults": {
         "unit": "short",
-        "mappings": []
+        "mappings": [],
+        "min": 0,
+        "custom": {
+          "drawStyle": "bars",
+          "axisSoftMax": 1
+        }
       },
       "overrides": []
       },
