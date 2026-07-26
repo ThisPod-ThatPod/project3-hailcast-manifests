@@ -27,7 +27,7 @@ spec:
       serviceAccountName: weather-cron-sa
       containers:
         - name: weather-cron
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:4fabaf8
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:<GITHUB_SHA>
           ports:
             - containerPort: 8002
               name: http
