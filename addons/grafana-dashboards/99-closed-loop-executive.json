@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Runtime Summary",
+      "title": "런타임 요약",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -23,13 +23,13 @@
     },
     {
       "id": 2,
-      "title": "Predict Scrape Status",
+      "title": "Predict 수집 대상 상태",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Prometheus가 Predict service target을 scrape할 수 있는지 표시한다. Prediction 생성, freshness 또는 정확도를 검증하지 않는다.",
+      "description": "Prometheus가 Predict 서비스의 메트릭 수집 대상을 scrape할 수 있는지 표시한다. 예측 생성 여부, 최신성 또는 정확도를 검증하지 않는다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -43,7 +43,7 @@
             "uid": "${datasource}"
           },
           "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
-          "legendFormat": "Predict Up",
+          "legendFormat": "Predict 수집 상태",
           "refId": "A",
           "instant": true,
           "range": false
@@ -59,12 +59,12 @@
                 "0": {
                   "color": "red",
                   "index": 0,
-                  "text": "Down"
+                "text": "수집 불가"
                 },
                 "1": {
                   "color": "green",
                   "index": 1,
-                  "text": "Up"
+                "text": "수집 가능"
                 }
               }
             }
@@ -97,19 +97,19 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 3,
-      "title": "KEDA Operator Status",
+      "title": "KEDA Operator 상태",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "kube-state-metrics 기준 KEDA operator Deployment에 available replica가 있는지 표시한다.",
+      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시한다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -139,12 +139,12 @@
                 "0": {
                   "color": "red",
                   "index": 0,
-                  "text": "Down"
+                "text": "사용 불가"
                 },
                 "1": {
                   "color": "green",
                   "index": 1,
-                  "text": "Healthy"
+                "text": "사용 가능"
                 }
               }
             }
@@ -177,19 +177,19 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 24,
-      "title": "Applied Scaling Baseline",
+      "title": "적용된 스케일링 기준값",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. ScaledObject spec.minReplicaCount 원본이나 prediction 값이 아니다.",
+      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. 예측값 자체나 ScaledObject spec.minReplicaCount 원본을 표시하는 패널이 아니다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -203,7 +203,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "Applied baseline",
+          "legendFormat": "적용 기준값",
           "refId": "A",
           "instant": true,
           "range": false
@@ -231,19 +231,19 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 5,
-      "title": "Worker Ready",
+      "title": "Worker Ready 파드",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "kube-state-metrics가 보고한 Worker Deployment의 Ready replica 수다.",
+      "description": "kube-state-metrics가 보고한 Worker 디플로이먼트(Deployment)의 Ready 복제본 수다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -257,7 +257,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Ready Workers",
+          "legendFormat": "Worker Ready",
           "refId": "A",
           "instant": true,
           "range": false
@@ -285,19 +285,19 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 25,
-      "title": "Baseline Readiness Gap",
+      "title": "기준값 대비 Ready 부족분",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "적용된 HPA baseline에서 Worker Ready를 뺀 부족분이다. 0은 baseline 충족, 1 이상은 readiness gap을 의미한다.",
+      "description": "적용된 HPA 기준값에서 Worker Ready 복제본 수를 뺀 부족분이다. 0은 기준값 충족, 1 이상은 Ready 부족을 의미한다.",
       "gridPos": {
         "h": 7,
         "w": 4,
@@ -311,7 +311,7 @@
             "uid": "${datasource}"
           },
           "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
-          "legendFormat": "Readiness gap",
+          "legendFormat": "Ready 부족분",
           "refId": "A",
           "instant": true,
           "range": false
@@ -327,7 +327,7 @@
                 "0": {
                   "color": "green",
                   "index": 0,
-                  "text": "Satisfied"
+                "text": "충족"
                 }
               }
             }
@@ -363,13 +363,13 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 7,
-      "title": "Scaling Timeline",
+      "title": "스케일링 타임라인",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -382,13 +382,13 @@
     },
     {
       "id": 26,
-      "title": "Queue / HPA / Worker",
+      "title": "처리 대기열 / HPA / Worker",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "동일 시간축에서 queue backlog, 적용 baseline, HPA desired/current, Worker Ready의 반응을 비교한다. Queue는 오른쪽 축, replica 계열은 왼쪽 축이다.",
+      "description": "동일 시간축에서 visible message 기준 처리 대기열 적체, 적용 기준값, HPA 목표·현재 복제본과 Worker Ready의 반응을 비교한다. 처리 대기열은 오른쪽 축, 복제본 계열은 왼쪽 축이다.",
       "gridPos": {
         "h": 10,
         "w": 16,
@@ -411,7 +411,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "Applied baseline",
+          "legendFormat": "적용 기준값",
           "refId": "B"
         },
         {
@@ -420,7 +420,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA desired",
+          "legendFormat": "HPA 목표",
           "refId": "C"
         },
         {
@@ -429,7 +429,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_horizontalpodautoscaler_status_current_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA current",
+          "legendFormat": "HPA 현재",
           "refId": "D"
         },
         {
@@ -438,7 +438,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Worker ready",
+          "legendFormat": "Worker Ready",
           "refId": "E"
         }
       ],
@@ -489,6 +489,10 @@
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "처리 대기열 적체"
+              },
+              {
                 "id": "custom.axisPlacement",
                 "value": "right"
               },
@@ -523,13 +527,13 @@
     },
     {
       "id": 27,
-      "title": "Pending Worker / Ready Node",
+      "title": "Pending 파드 · Ready 노드",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Pending Worker와 Ready Node 수를 같은 시간축에서 비교한다. Pending Worker가 1 이상이면 scheduling 지연 가능성을 점검해야 한다. NodeClaim을 직접 관측하는 패널은 아니다.",
+      "description": "Pending Worker와 Ready 노드 수를 같은 시간축에서 비교한다. Ready 노드는 관리형 노드와 Karpenter 노드를 포함한 전체 클러스터 노드 수이며, NodeClaim을 직접 관측하는 패널은 아니다. Pending Worker가 1 이상이면 스케줄링 지연 가능성을 점검해야 한다.",
       "gridPos": {
         "h": 10,
         "w": 8,
@@ -543,7 +547,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
-          "legendFormat": "Pending worker",
+          "legendFormat": "Pending Worker",
           "refId": "A"
         },
         {
@@ -552,7 +556,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
-          "legendFormat": "Ready nodes",
+          "legendFormat": "Ready 노드",
           "refId": "B"
         }
       ],
@@ -616,7 +620,7 @@
     },
     {
       "id": 11,
-      "title": "Kubernetes Allocation Estimate",
+      "title": "OpenCost 비용 모델",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -629,13 +633,13 @@
     },
     {
       "id": 28,
-      "title": "Worker / Namespace Allocation — OpenCost Estimate ($/h)",
+      "title": "OpenCost 할당 모델 비용 ($/h)",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "OpenCost의 Worker 및 hailcast namespace CPU/RAM allocation과 modeled node rates를 비교한다. AWS invoice 또는 realized savings가 아니다.",
+      "description": "OpenCost가 계산한 Worker와 hailcast 네임스페이스의 CPU/RAM 할당 모델 비용을 비교한다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며, 실제 AWS 청구액 또는 확정 절감액과 다를 수 있다.",
       "gridPos": {
         "h": 10,
         "w": 12,
@@ -649,7 +653,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  container_cpu_allocation{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    container=\"worker\"\n  }\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
-          "legendFormat": "Worker allocation estimate",
+          "legendFormat": "Worker 할당 모델 비용",
           "refId": "A"
         },
         {
@@ -658,7 +662,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  container_cpu_allocation{namespace=\"$namespace\"}\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{namespace=\"$namespace\"}\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
-          "legendFormat": "Hailcast namespace allocation estimate",
+          "legendFormat": "Hailcast 네임스페이스 할당 모델 비용",
           "refId": "B"
         }
       ],
@@ -722,13 +726,13 @@
     },
     {
       "id": 29,
-      "title": "Total / Spot Node Modeled Hourly Cost",
+      "title": "전체 / Spot 노드 모델 비용 ($/h)",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "OpenCost의 전체 Node 및 Spot Node modeled hourly cost를 비교한다. AWS invoice 또는 realized savings가 아니다.",
+      "description": "OpenCost가 계산한 전체 노드와 Spot 노드의 시간당 모델 비용을 비교한다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며, 실제 AWS 청구액 또는 확정 절감액과 다를 수 있다.",
       "gridPos": {
         "h": 10,
         "w": 12,
@@ -742,7 +746,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(node_total_hourly_cost)",
-          "legendFormat": "Total node modeled cost",
+          "legendFormat": "전체 노드 모델 비용",
           "refId": "A"
         },
         {
@@ -751,7 +755,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  node_total_hourly_cost\n  * on(node)\n  kubecost_node_is_spot\n)",
-          "legendFormat": "Spot node modeled cost",
+          "legendFormat": "Spot 노드 모델 비용",
           "refId": "B"
         }
       ],
@@ -826,14 +830,14 @@
     "list": [
       {
         "name": "datasource",
-        "label": "Datasource",
+        "label": "데이터 소스",
         "type": "datasource",
         "query": "prometheus",
         "refresh": 1
       },
       {
         "name": "namespace",
-        "label": "Namespace",
+        "label": "네임스페이스",
         "type": "constant",
         "query": "hailcast",
         "current": {
@@ -844,7 +848,7 @@
       },
       {
         "name": "worker_deployment",
-        "label": "Worker Deployment",
+        "label": "Worker 디플로이먼트",
         "type": "constant",
         "query": "hailcast-worker",
         "current": {
@@ -855,7 +859,7 @@
       },
       {
         "name": "predict_service",
-        "label": "Predict Service",
+        "label": "Predict 서비스",
         "type": "constant",
         "query": "predict",
         "current": {
@@ -872,7 +876,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "99 Hailcast Executive — Runtime, Scaling & Cost",
+  "title": "99 Hailcast 운영 요약",
   "uid": "hailcast-99-closed-loop",
   "version": 1,
   "weekStart": ""

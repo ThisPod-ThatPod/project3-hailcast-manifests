@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Runtime Summary",
+      "title": "런타임 요약",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -23,13 +23,13 @@
     },
     {
       "id": 2,
-      "title": "Predict Scrape Status",
+      "title": "Predict 수집 대상 상태",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Prometheus가 Predict service target을 scrape할 수 있는지 표시한다. Prediction 생성, freshness 또는 정확도를 검증하지 않는다.",
+      "description": "Prometheus가 Predict 서비스의 메트릭 수집 대상을 scrape할 수 있는지 표시한다. 예측 생성 여부, 최신성 또는 정확도를 검증하지 않는다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -43,7 +43,7 @@
             "uid": "${datasource}"
           },
           "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
-          "legendFormat": "Predict Up",
+          "legendFormat": "Predict 수집 상태",
           "refId": "A",
           "instant": true,
           "range": false
@@ -59,12 +59,12 @@
                 "0": {
                   "color": "red",
                   "index": 0,
-                  "text": "Down"
+                "text": "수집 불가"
                 },
                 "1": {
                   "color": "green",
                   "index": 1,
-                  "text": "Up"
+                "text": "수집 가능"
                 }
               }
             }
@@ -97,19 +97,19 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value_and_name",
+        "textMode": "value",
         "wideLayout": true
       }
     },
     {
       "id": 4,
-      "title": "Predict Pod Ready",
+      "title": "Predict Ready 파드",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "kube-state-metrics가 보고한 Predict Pod Ready 수다. Prediction 결과의 유효성을 의미하지 않는다.",
+      "description": "kube-state-metrics가 보고한 Predict 파드의 Ready 수다. 예측 결과의 유효성을 의미하지 않는다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -123,7 +123,7 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  kube_pod_status_ready{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\",\n    condition=\"true\"\n  }\n)",
-          "legendFormat": "Ready Pods",
+          "legendFormat": "Ready 파드",
           "refId": "A",
           "instant": true,
           "range": false
@@ -157,13 +157,13 @@
     },
     {
       "id": 10,
-      "title": "Applied Scaling Baseline",
+      "title": "적용된 스케일링 기준값",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. ScaledObject spec.minReplicaCount 원본이나 prediction 값이 아니다.",
+      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. 예측값 자체나 ScaledObject spec.minReplicaCount 원본을 표시하는 패널이 아니다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -177,7 +177,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "Applied baseline",
+          "legendFormat": "적용 기준값",
           "refId": "A",
           "instant": true,
           "range": false
@@ -211,13 +211,13 @@
     },
     {
       "id": 11,
-      "title": "Worker Ready",
+      "title": "Worker Ready 파드",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "kube-state-metrics가 보고한 Worker Deployment의 Ready replica 수다.",
+      "description": "kube-state-metrics가 보고한 Worker 디플로이먼트(Deployment)의 Ready 복제본 수다.",
       "gridPos": {
         "h": 7,
         "w": 5,
@@ -231,7 +231,7 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Worker ready",
+          "legendFormat": "Worker Ready",
           "refId": "A",
           "instant": true,
           "range": false
@@ -265,13 +265,13 @@
     },
     {
       "id": 12,
-      "title": "Baseline Readiness Gap",
+      "title": "기준값 대비 Ready 부족분",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "적용된 HPA baseline에서 Worker Ready를 뺀 부족분이다. 0은 baseline 충족, 1 이상은 readiness gap을 의미한다.",
+      "description": "적용된 HPA 기준값에서 Worker Ready 복제본 수를 뺀 부족분이다. 0은 기준값 충족, 1 이상은 Ready 부족을 의미한다.",
       "gridPos": {
         "h": 7,
         "w": 4,
@@ -285,7 +285,7 @@
             "uid": "${datasource}"
           },
           "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
-          "legendFormat": "Readiness gap",
+          "legendFormat": "Ready 부족분",
           "refId": "A",
           "instant": true,
           "range": false
@@ -301,7 +301,7 @@
                 "0": {
                   "color": "green",
                   "index": 0,
-                  "text": "Satisfied"
+                "text": "충족"
                 }
               }
             }
@@ -343,7 +343,7 @@
     },
     {
       "id": 6,
-      "title": "Predict Runtime Detail",
+      "title": "Predict 런타임 상세",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -356,13 +356,13 @@
     },
     {
       "id": 5,
-      "title": "Predict Pod Restart",
+      "title": "Predict 파드 재시작",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "각 시점에서 Grafana가 자동 계산한 구간의 Predict container restart 증가량을 표시한다. 선택한 전체 시간 범위의 누적 합계가 아니며, Restart가 없거나 series가 새로 생성된 경우 0 또는 No Data일 수 있다.",
+      "description": "각 시점에서 Grafana가 자동 계산한 구간의 Predict 컨테이너 재시작 증가량을 표시한다. 선택한 전체 시간 범위의 누적 합계가 아니며, 재시작이 없거나 시계열이 새로 생성된 경우 0 또는 데이터 없음으로 표시될 수 있다.",
       "gridPos": {
         "h": 7,
         "w": 24,
@@ -376,14 +376,19 @@
             "uid": "${datasource}"
           },
           "expr": "sum(\n  increase(\n    kube_pod_container_status_restarts_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\",\n      container=\"predict\"\n    }[$__rate_interval]\n  )\n)",
-          "legendFormat": "Restarts",
+          "legendFormat": "재시작",
           "refId": "A"
         }
       ],
     "fieldConfig": {
       "defaults": {
         "unit": "short",
-        "mappings": []
+        "mappings": [],
+        "min": 0,
+        "custom": {
+          "drawStyle": "bars",
+          "axisSoftMax": 1
+        }
       },
       "overrides": []
       },
@@ -414,14 +419,14 @@
     "list": [
       {
         "name": "datasource",
-        "label": "Datasource",
+        "label": "데이터 소스",
         "type": "datasource",
         "query": "prometheus",
         "refresh": 1
       },
       {
         "name": "namespace",
-        "label": "Namespace",
+        "label": "네임스페이스",
         "type": "constant",
         "query": "hailcast",
         "current": {
@@ -432,7 +437,7 @@
       },
       {
         "name": "worker_deployment",
-        "label": "Worker Deployment",
+        "label": "Worker 디플로이먼트",
         "type": "constant",
         "query": "hailcast-worker",
         "current": {
@@ -443,7 +448,7 @@
       },
       {
         "name": "predict_service",
-        "label": "Predict Service",
+        "label": "Predict 서비스",
         "type": "constant",
         "query": "predict",
         "current": {
@@ -460,7 +465,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "01 Predictive Scaling Baseline — Runtime Verification",
+  "title": "01 예측 기반 스케일링 — 런타임 검증",
   "uid": "hailcast-01-predict-scaling",
   "version": 1,
   "weekStart": ""

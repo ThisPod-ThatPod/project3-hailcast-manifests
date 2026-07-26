@@ -44,37 +44,37 @@ alertmanager:
     telegram-hailcast.tmpl: |-
       {{ define "telegram.hailcast.message" -}}
       {{- if eq .Status "firing" -}}
-      <b>🔥 FIRING</b>
+      <b>🔥 발생</b>
       {{- else -}}
-      <b>✅ RESOLVED</b>
+      <b>✅ 해제</b>
       {{- end }}
       <b>{{ printf "%.100s" .CommonLabels.alertname | html }}</b>
 
-      Firing: {{ len .Alerts.Firing }} · Resolved: {{ len .Alerts.Resolved }}
+      발생: {{ len .Alerts.Firing }} · 해제: {{ len .Alerts.Resolved }}
       {{ range $index, $alert := .Alerts -}}
       {{- if lt $index 4 }}
 
-      {{ if eq $alert.Status "firing" -}}🔥 <b>FIRING</b>{{ else -}}✅ <b>RESOLVED</b>{{ end }}
-      Severity: {{ printf "%.20s" $alert.Labels.severity | html }}
+      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>해제</b>{{ end }}
+      심각도: {{ printf "%.20s" $alert.Labels.severity | html }}
       {{- if $alert.Labels.deployment }}
-      Deployment: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
+      디플로이먼트: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
       {{- else if $alert.Labels.horizontalpodautoscaler }}
       HPA: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.horizontalpodautoscaler | html }}
       {{- else if $alert.Labels.pod }}
-      Pod: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.pod | html }}
+      파드: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.pod | html }}
       {{- else if $alert.Labels.service }}
-      Service: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.service | html }}
+      서비스: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.service | html }}
       {{- else if $alert.Labels.job }}
-      Target: {{ printf "%.120s" $alert.Labels.job | html }}/{{ printf "%.120s" $alert.Labels.instance | html }}
+      대상: {{ printf "%.120s" $alert.Labels.job | html }}/{{ printf "%.120s" $alert.Labels.instance | html }}
       {{- end }}
       {{- with $alert.Annotations.summary }}
-      Summary: {{ printf "%.120s" . | html }}
+      요약: {{ printf "%.120s" . | html }}
       {{- end }}
       {{- end }}
       {{- end }}
       {{- if gt (len .Alerts) 4 }}
 
-      … Additional alerts omitted (total: {{ len .Alerts }}).
+      … 나머지 알림 생략(전체: {{ len .Alerts }}건).
       {{- end }}
       {{- end }}
   config:

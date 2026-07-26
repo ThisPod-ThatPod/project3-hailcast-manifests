@@ -16,10 +16,10 @@ Platform Alert만 Telegram으로 전달한다.
 제외한다. 그 밖의 알림도 Telegram route와 일치하지 않으므로 기본 `null` receiver로
 처리한다. Telegram receiver는 firing과 resolved 알림을 모두 전송한다.
 
-Telegram 메시지는 상태를 `FIRING`/`RESOLVED`로 구분하고 severity와 Kubernetes 대상,
-summary만 표시한다. 한 메시지에는 최대 4개 Alert만 표시하며, 나머지는 전체 건수와 함께
-생략해 Telegram 메시지 길이 제한을 넘지 않도록 한다. 전체 labels와 source URL은
-출력하지 않는다.
+Telegram 메시지는 내부 firing/resolved 상태를 각각 `발생`/`해제`로 표시하고 심각도와
+Kubernetes 대상, 요약만 표시한다. 한 메시지에는 최대 4개 Alert만 표시하며, 나머지는
+전체 건수와 함께 생략해 Telegram 메시지 길이 제한을 넘지 않도록 한다. 전체 labels와
+source URL은 출력하지 않는다.
 
 ## 2. Secret 계약과 보안 원칙
 
@@ -176,6 +176,18 @@ kubectl -n monitoring rollout status \
 
 ## 8. 현재 검증 범위
 
-현재 저장소에서는 YAML 문법, Helm Chart 렌더링, Alertmanager routing 및 Secret 파일 경로만 검증한다.
+`make validate`는 다음 정적 검증을 수행한다.
 
-실제 Secret 생성, EKS 배포, Telegram API 호출, firing/resolved 메시지 수신, Token 회전은 아직 실클러스터에서 수행하지 않은 운영 검증 단계다.
+- Grafana Dashboard JSON 구문 검사
+- 검증 대상 kustomization 렌더링
+- shell script 구문 검사
+- Git whitespace 검사
+
+Helm Chart 렌더링은 `make validate`에 포함하지 않는다. 이번 최종 QA에서는
+`kube-prometheus-stack`, KEDA, Karpenter, OpenCost Chart를 별도 `helm template`
+명령으로 검증했다.
+
+현재 실클러스터에서는 Alertmanager Ready 상태, `alertmanager-telegram` Secret 존재,
+Telegram receiver와 route 설정 로드, 최근 설정 reload 오류가 없음을 확인했다. 실제
+Telegram 채널에서 `발생`/`해제` 메시지를 수신하는 E2E 검증과 Token 회전 검증은 아직
+남아 있는 운영 검증 단계다.

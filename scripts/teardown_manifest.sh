@@ -35,4 +35,4 @@ kubectl get svc -A 2>/dev/null | grep -i loadbalancer || echo "  LoadBalancer �
 #     sleep 10
 # done
 
-echo "[manifest] 완료 — 이제 infra terraform destroy 가 안전합니다."
+echo "[manifest] 점검 종료 — 실제 삭제 및 ALB 잔존 여부를 직접 확인한 뒤 infra 단계로 진행하세요."
