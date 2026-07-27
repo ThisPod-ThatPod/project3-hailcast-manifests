@@ -35,10 +35,10 @@ spec:
               value: "http://hailcast-call-api:8000"
           resources:
             requests:
-              cpu: "300m"
+              cpu: "3000m"
               memory: "512Mi"
             limits:
-              cpu: "2000m"
+              cpu: "6000m"
               memory: "1280Mi"
           livenessProbe:
             httpGet:

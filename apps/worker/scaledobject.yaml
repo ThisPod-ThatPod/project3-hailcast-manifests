@@ -14,7 +14,7 @@ spec:
     - type: aws-sqs-queue
       metadata:
         queueURLFromEnv: SQS_QUEUE_URL
-        queueLength: "3"
+        queueLength: "20"
         awsRegion: ap-northeast-2
       authenticationRef:
         name: hailcast-keda-auth
