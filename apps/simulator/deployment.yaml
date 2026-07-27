@@ -20,7 +20,7 @@ spec:
       serviceAccountName: simulator-sa
       containers:
         - name: simulator
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:40009f6
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:c1cf381
           ports:
             - containerPort: 8001
               name: http
