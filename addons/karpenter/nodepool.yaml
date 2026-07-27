@@ -44,6 +44,7 @@ spec:
           operator: In
           values:
             - "2"
+            - "8"
 
         - key: karpenter.k8s.aws/instance-memory
           operator: Gte
@@ -53,7 +54,7 @@ spec:
         - key: karpenter.k8s.aws/instance-memory
           operator: Lte
           values:
-            - "8192"
+            - "16384"
 
   limits:
     cpu: "100"
@@ -61,4 +62,3 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 30s
-    
