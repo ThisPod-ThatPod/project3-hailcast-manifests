@@ -166,9 +166,17 @@ for ns in argocd external-secrets; do
 done
 printf '\n'
 
-# 5. ESO가 Secret을 다시 만들었는지
-#    밤새 사라졌다가 아침에 ESO가 재생성한다. 앱이 이걸 기다린다.
-printf '%s\n' '--- 5. Secret 재생성 ---'
+# 5. hailcast-rds-secret 존재 확인
+#    이 Secret은 밤새 사라지지 않는다 — 야간절전은 노드·RDS만 내리고
+#    K8s 오브젝트(Secret 포함)는 그대로 남는다. ExternalSecret 2개가 둘 다
+#    creationPolicy: Merge라 ESO도 스스로 새로 만들 수는 없다(생성은
+#    Owner만 가능). 실제로 없어지는 건 destroy 후 재구축했을 때뿐이다.
+#    대응은 두 겹이다 — 평소엔 빈 Secret을 GitOps로 미리 배치해 자동으로
+#    채워지게 하고(feature/rds-secret-placeholder, 리뷰 대기 중), 그게 안
+#    먹히는 긴급 상황엔 사람이 수동 생성한다(infra repo docs/비용관리.md
+#    "재구축 시 hailcast-rds-secret", 근거: infra PR#69). 실제 검증은
+#    8/3 재구축 리허설 때 이뤄진다.
+printf '%s\n' '--- 5. Secret 존재 확인 ---'
 if morning_secret_key_exists "$MORNING_APP_NAMESPACE" "$MORNING_RDS_SECRET" "DB_HOST"; then
   pass "$MORNING_RDS_SECRET 존재 (DB_HOST 키 확인)"
 else
