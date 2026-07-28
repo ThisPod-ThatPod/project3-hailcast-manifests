@@ -54,7 +54,8 @@ alertmanager:
       {{ range $index, $alert := .Alerts -}}
       {{- if lt $index 4 }}
 
-      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>해제</b>{{ end }}
+      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>해제</b>
+      현재 상태: 해제됨{{ end }}
       심각도: {{ printf "%.20s" $alert.Labels.severity | html }}
       {{- if $alert.Labels.deployment }}
       디플로이먼트: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
@@ -64,11 +65,17 @@ alertmanager:
       파드: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.pod | html }}
       {{- else if $alert.Labels.service }}
       서비스: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.service | html }}
+      {{- else if $alert.Labels.node }}
+      노드: {{ printf "%.120s" $alert.Labels.node | html }}
       {{- else if $alert.Labels.job }}
       대상: {{ printf "%.120s" $alert.Labels.job | html }}/{{ printf "%.120s" $alert.Labels.instance | html }}
       {{- end }}
       {{- with $alert.Annotations.summary }}
+      {{- if eq $alert.Status "firing" }}
       요약: {{ printf "%.120s" . | html }}
+      {{- else }}
+      발생 당시 요약: {{ printf "%.120s" . | html }}
+      {{- end }}
       {{- end }}
       {{- end }}
       {{- end }}

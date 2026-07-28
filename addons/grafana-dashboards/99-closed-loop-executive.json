@@ -401,7 +401,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(hailcast_queue_size{namespace=\"$namespace\"})",
+          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
           "legendFormat": "Queue backlog",
           "refId": "A"
         },
@@ -639,7 +639,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "OpenCost가 계산한 Worker와 hailcast 네임스페이스의 CPU/RAM 할당 모델 비용을 비교한다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며, 실제 AWS 청구액 또는 확정 절감액과 다를 수 있다.",
+      "description": "OpenCost가 Kubernetes 리소스 기준으로 계산한 Worker와 hailcast 네임스페이스의 CPU/RAM 할당 모델 비용을 비교한다. CUR 또는 Cost Explorer를 사용한 AWS 실제 청구 비용이 아니며 RDS, ALB, SQS, S3, EKS Control Plane 비용은 포함하지 않는다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며 확정 절감액과도 다를 수 있다.",
       "gridPos": {
         "h": 10,
         "w": 12,
@@ -732,7 +732,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "OpenCost가 계산한 전체 노드와 Spot 노드의 시간당 모델 비용을 비교한다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며, 실제 AWS 청구액 또는 확정 절감액과 다를 수 있다.",
+      "description": "OpenCost가 Kubernetes 노드 기준으로 계산한 전체 노드와 Spot 노드의 시간당 모델 비용을 비교한다. CUR 또는 Cost Explorer를 사용한 AWS 실제 청구 비용이 아니며 RDS, ALB, SQS, S3, EKS Control Plane 비용은 포함하지 않는다. Spot 계열은 확정 절감액이 아니라 Spot 노드에 귀속된 모델 비용이며, AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있다.",
       "gridPos": {
         "h": 10,
         "w": 12,
