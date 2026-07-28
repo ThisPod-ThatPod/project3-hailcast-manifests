@@ -12,9 +12,20 @@ FAIL_COUNT=0
 
 usage() {
   cat <<'EOF'
-Usage: verify.sh
+Usage:
+  scripts/keda/verify.sh
 
-Verifies the Argo CD-managed KEDA installation and rejects a separate Helm release.
+Environment:
+  KEDA_VERIFY_LOG_SINCE  Operator 로그 조회 범위 (default: 10m)
+
+Checks:
+  - Argo CD Application sync/health
+  - 독립 Helm release 중복 여부
+  - KEDA Operator IRSA annotation
+  - Operator Deployment 및 Pod 상태
+  - KEDA CRD/API 상태
+  - 최근 AWS 인증 오류
+  - Worker ScaledObject Ready 상태
 EOF
 }
 

@@ -128,7 +128,7 @@ spec:
 
         - alert: HailcastQueueBacklogHigh
           expr: |
-            max(
+            max by (namespace, service) (
               hailcast_queue_size{
                 namespace="hailcast",
                 service="predict"

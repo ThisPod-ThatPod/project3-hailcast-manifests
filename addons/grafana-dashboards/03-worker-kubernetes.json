@@ -85,7 +85,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Ready 상태로 보고된 Worker 복제본 수다.",
+      "description": "파드 readiness 상태를 통과해 Ready로 보고된 Worker 복제본 수다. 롤아웃 중에는 Deployment의 Available 복제본 수와 잠시 다를 수 있다.",
       "gridPos": {
         "h": 7,
         "w": 8,
@@ -141,7 +141,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "디플로이먼트가 사용 가능하다고 보고한 Worker 복제본 수다.",
+      "description": "디플로이먼트가 minReadySeconds 조건을 충족해 사용 가능하다고 보고한 Worker 복제본 수다. 현재 minReadySeconds=0이므로 Ready 복제본 수와 대부분 동일하게 보일 수 있다.",
       "gridPos": {
         "h": 7,
         "w": 8,
@@ -446,13 +446,13 @@
     },
     {
       "id": 10,
-      "title": "Worker 재시작",
+      "title": "Worker 컨테이너 재시작 증가량 (5분)",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Grafana가 계산한 구간별 Worker 컨테이너 재시작 증가량이다.",
+      "description": "각 시점 기준 최근 5분 동안 동일한 Worker 파드 안에서 worker 컨테이너의 재시작 counter가 증가한 양을 표시한다. 파드 삭제·교체·재생성은 컨테이너 재시작이 아니므로 이 패널에 집계되지 않는다.",
       "gridPos": {
         "h": 7,
         "w": 8,
@@ -465,7 +465,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  increase(\n    kube_pod_container_status_restarts_total{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }[$__rate_interval]\n  )\n)",
+          "expr": "sum(\n  increase(\n    kube_pod_container_status_restarts_total{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }[5m]\n  )\n)",
           "legendFormat": "재시작",
           "refId": "A"
         }
