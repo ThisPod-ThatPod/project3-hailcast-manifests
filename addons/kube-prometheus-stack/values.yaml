@@ -43,10 +43,12 @@ alertmanager:
   templateFiles:
     telegram-hailcast.tmpl: |-
       {{ define "telegram.hailcast.message" -}}
-      {{- if eq .Status "firing" -}}
+      {{- if and (gt (len .Alerts.Firing) 0) (gt (len .Alerts.Resolved) 0) -}}
+      <b>🔄 상태 변경</b>
+      {{- else if gt (len .Alerts.Firing) 0 -}}
       <b>🔥 발생</b>
       {{- else -}}
-      <b>✅ 해제</b>
+      <b>✅ 정상 복구</b>
       {{- end }}
       <b>{{ printf "%.100s" .CommonLabels.alertname | html }}</b>
 
@@ -54,8 +56,8 @@ alertmanager:
       {{ range $index, $alert := .Alerts -}}
       {{- if lt $index 4 }}
 
-      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>해제</b>
-      현재 상태: 해제됨{{ end }}
+      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>정상 복구</b>
+      현재 상태: 정상화됨{{ end }}
       심각도: {{ printf "%.20s" $alert.Labels.severity | html }}
       {{- if $alert.Labels.deployment }}
       디플로이먼트: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
@@ -74,7 +76,7 @@ alertmanager:
       {{- if eq $alert.Status "firing" }}
       요약: {{ printf "%.120s" . | html }}
       {{- else }}
-      발생 당시 요약: {{ printf "%.120s" . | html }}
+      해제된 문제: {{ printf "%.120s" . | html }}
       {{- end }}
       {{- end }}
       {{- end }}
