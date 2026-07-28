@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-frontend:a843eea
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-frontend:d76ac73
           ports:
             - containerPort: 80
               name: http
