@@ -1,38 +1,98 @@
 #!/bin/bash
 # =============================================================
-# 넣을 위치 : project3-hailcast-manifests/scripts/teardown_manifest.sh
+# 파일위치 : project3-hailcast-manifests/scripts/teardown_manifest.sh
 # 소유      : 그룹 C (용빈·지윤)
 # 역할      : K8s 워크로드·ALB 를 먼저 정리한다 (VPC destroy 를 막는 원인 제거).
 # 호출      : ops 의 teardown.sh 가 '가장 먼저' 부른다.
-# 커스터마이징: ★ 표시 부분을 각자 배포 방식(ArgoCD/helm/kubectl)에 맞게 채운다.
+# 삭제 경로 : 팀 결정(teardown_체크리스트.md 6장 게이트②)에 따라 ARGOCD_DELETE_PATH로 분기.
+#            argocd = argocd CLI (finalizer 자동 부여, 권장)
+#            kubectl = kubectl delete application --all (finalizer 없는 7종은 하위자원 잔존 — 4단계에서 직접 확인 필요)
 # 안전      : 실제 삭제 명령은 CONFIRM=yes 일 때만 실행(ops --yes 시 자동 주입).
 # =============================================================
-set -u
+set -uo pipefail   # -e는 의도적으로 뺌: 삭제 단계 중 일부 실패해도 확인(③)까지는 마저 돌리고 싶어서.
+                    # 대신 각 삭제 명령의 실패는 FAILED로 누적해 마지막에 종료 코드로 반영한다.
+
 CONFIRM="${CONFIRM:-}"
-run() { echo "  \$ $*"; [ "$CONFIRM" = "yes" ] && "$@" || echo "    (미실행 — CONFIRM=yes 또는 ops --yes 로 실행)"; }
+ARGOCD_DELETE_PATH="${ARGOCD_DELETE_PATH:-kubectl}"   # ★ 팀 결정(게이트②) 확정되면 기본값을 그걸로 바꿔도 됨
+ROOT_APP="${ROOT_APP:-hailcast-root}"                 # 파일명(app-of-apps.yaml)과 다름 — 실제 Application 이름
+FAILED=0
 
-echo "[manifest] K8s 워크로드·ALB 정리 시작"
+run() {
+    echo "  \$ $*"
+    if [ "$CONFIRM" = "yes" ]; then
+        "$@" || { echo "    [ERROR] 실패: $*"; FAILED=1; }
+    else
+        echo "    (미실행 — CONFIRM=yes 또는 ops --yes 로 실행)"
+    fi
+}
 
-# ── ① ArgoCD Application 삭제 (cascade — 하위 리소스까지) ★
-# run argocd app delete hailcast --cascade --yes
-# 또는 app-of-apps 를 쓰면 최상위 하나만:
-# run argocd app delete hailcast-root --cascade --yes
+echo "[manifest] K8s 워크로드·ALB 정리 시작 (삭제 경로: ${ARGOCD_DELETE_PATH})"
 
-# ── ② (ArgoCD 안 쓰면) helm / kubectl 로 직접 ★
-# run helm uninstall hailcast -n hailcast
-# run kubectl delete -f ../apps/ -R
+# ── 클러스터 컨텍스트 확인 (엉뚱한 클러스터를 지우는 사고 방지) ──────
+CTX=$(kubectl config current-context 2>/dev/null || echo "")
+if [[ "$CTX" != *"hailcast"* ]]; then
+    echo "[manifest][WARN] 현재 kubectl 컨텍스트가 'hailcast'를 포함하지 않습니다: '${CTX}'"
+    echo "               aws eks update-kubeconfig --name hailcast-dev-eks --region ap-northeast-2 먼저 실행하세요."
+    if [ "$CONFIRM" = "yes" ]; then
+        echo "[manifest][ERROR] CONFIRM=yes 상태에서 잘못된 클러스터를 지울 위험 — 중단합니다."
+        exit 1
+    fi
+fi
 
-# ── ③ Ingress(ALB) 가 실제로 사라졌는지 확인 — 이게 핵심 ────────────
-# LB Controller 가 만든 ALB·타깃그룹·ENI 가 남으면 infra terraform destroy 가 VPC 를 못 지운다.
+# ── ① Application 삭제 — 경로 분기 ──────────────────────────
+if [ "$ARGOCD_DELETE_PATH" = "argocd" ]; then
+    echo "[manifest] 경로 A(argocd CLI) — cascade가 finalizer를 자동 부여, finalizer 없는 7종도 함께 정리됨"
+    if [ "$CONFIRM" = "yes" ]; then
+        PW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' 2>/dev/null | base64 -d)
+        if [ -z "$PW" ]; then
+            echo "  [WARN] 초기 admin 비밀번호를 못 가져옴 — 비밀번호를 바꿨다면 ARGOCD_PASSWORD 환경변수로 넘기세요."
+            PW="${ARGOCD_PASSWORD:-}"
+        fi
+        kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
+        PF_PID=$!
+        sleep 3
+        argocd login localhost:8080 --username admin --password "$PW" --insecure \
+            && run argocd app delete "$ROOT_APP" --cascade --yes
+        kill "$PF_PID" 2>/dev/null || true
+    else
+        echo "  \$ argocd app delete ${ROOT_APP} --cascade --yes"
+        echo "    (미실행 — CONFIRM=yes 또는 ops --yes 로 실행)"
+    fi
+else
+    echo "[manifest] 경로 B(kubectl) — finalizer 없는 7종(grafana-dashboards·karpenter·keda·"
+    echo "           kube-prometheus-stack·metrics-server·opencost·platform-monitoring)은"
+    echo "           Application만 사라지고 Karpenter 노드·EBS 등 하위 자원이 남을 수 있습니다."
+    echo "           → infra teardown_infra.sh의 Karpenter 노드 가드가 잡아줄 것이나, 직접 확인도 권장."
+    run kubectl -n argocd delete application --all
+fi
+
+# ── ② Ingress/ALB 실제 소거 대기 (최대 3분 폴링) ────────────
+echo "[manifest] Ingress/ALB 소거 확인 (최대 3분 폴링, CONFIRM=yes일 때만 대기)"
+if [ "$CONFIRM" = "yes" ]; then
+    for i in $(seq 1 18); do
+        REMAIN_ING=$(kubectl get ingress -A --no-headers 2>/dev/null | wc -l)
+        REMAIN_LB=$(kubectl get svc -A --no-headers 2>/dev/null | grep -ci loadbalancer || true)
+        if [ "$REMAIN_ING" -eq 0 ] && [ "$REMAIN_LB" -eq 0 ]; then
+            echo "  [OK] Ingress/LoadBalancer 전부 제거됨 (${i}0초 소요)"
+            break
+        fi
+        if [ "$i" -eq 18 ]; then
+            echo "  [WARN] 3분 넘겨도 Ingress/LB가 남아있습니다 — infra destroy 진행 전 원인 파악 필요"
+            FAILED=1
+        fi
+        sleep 10
+    done
+fi
+
+# ── ③ 최종 상태 확인 (항상 실행 — CONFIRM 여부 무관, 눈으로 보는 용도) ──
 echo "[manifest] 남은 LoadBalancer/Ingress 확인:"
 kubectl get ingress -A 2>/dev/null || true
 kubectl get svc -A 2>/dev/null | grep -i loadbalancer || echo "  LoadBalancer 타입 서비스 없음(정상)"
+aws elbv2 describe-load-balancers --region ap-northeast-2 \
+    --query 'LoadBalancers[].LoadBalancerName' --output text 2>/dev/null || true
 
-# ── ④ 사라질 때까지 대기 (선택) ★
-# echo "[manifest] ALB 삭제 반영까지 대기(최대 3분)..."
-# for i in $(seq 1 18); do
-#     kubectl get ingress -A 2>/dev/null | grep -q . || break
-#     sleep 10
-# done
-
-echo "[manifest] 점검 종료 — 실제 삭제 및 ALB 잔존 여부를 직접 확인한 뒤 infra 단계로 진행하세요."
+if [ "$FAILED" -ne 0 ]; then
+    echo "[manifest] 일부 단계 실패/미확인 — infra 단계로 넘어가기 전에 위 로그를 확인하세요."
+    exit 1
+fi
+echo "[manifest] 점검 종료."
