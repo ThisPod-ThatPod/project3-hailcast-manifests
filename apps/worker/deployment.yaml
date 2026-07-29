@@ -25,6 +25,18 @@ spec:
               memory: "512Mi"
             limits:
               memory: "1Gi"
+          # worker는 SQS 소비자라 HTTP 포트가 없어서 exec probe로 프로세스
+          # 생존만 확인한다 (채택 확정). 한계: SQS 폴링이 AwsError로 계속
+          # 실패해도 worker_service.py의 루프는 죽지 않고 재시도만 하므로,
+          # 이 probe로는 "떠있음"만 확인되고 "정상 동작"까지는 못 잡는다.
+          # 개선 방향(백로그): 폴링 성공마다 하트비트 파일을 갱신하고
+          # exec probe가 파일 최신성을 확인하는 방식 — worker_service.py
+          # 코드 변경 필요해 앱팀과 협의 대상.
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "worker.py"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
           env:
             - name: SQS_QUEUE_URL
               value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
