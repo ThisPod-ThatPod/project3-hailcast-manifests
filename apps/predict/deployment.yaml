@@ -28,6 +28,20 @@ spec:
               memory: "512Mi"
             limits:
               memory: "1Gi"
+          # predict 실제 엔드포인트는 /healthz 하나뿐(/live, /ready 없음).
+          # app 레포 k8s/predict-deployment.yaml 참고 스펙과 동일.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8003
+            initialDelaySeconds: 15
+            periodSeconds: 15
           env:
             - name: KEDA_ENABLED
               value: "true"
