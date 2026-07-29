@@ -7,7 +7,10 @@
 # 삭제 경로 : 팀 결정(teardown_체크리스트.md 6장 게이트②)에 따라 ARGOCD_DELETE_PATH로 분기.
 #            argocd = argocd CLI (finalizer 자동 부여, 권장)
 #            kubectl = kubectl delete application --all (finalizer 없는 7종은 하위자원 잔존 — 4단계에서 직접 확인 필요)
-# 안전      : 실제 삭제 명령은 CONFIRM=yes 일 때만 실행(ops --yes 시 자동 주입).
+# 안전      : 실제 삭제 명령은 CONFIRM=yes 일 때만 실행. ops 의 --yes 는 단계별
+#            진행 프롬프트만 건너뛸 뿐 CONFIRM 을 넣어주지 않는다(ops/teardown.sh는
+#            infra 단계에만 CONFIRM=yes 를 주입함) — 실제로 지우려면 CONFIRM=yes 를
+#            직접 넘겨야 한다(예: CONFIRM=yes bash scripts/teardown_manifest.sh).
 # =============================================================
 set -uo pipefail   # -e는 의도적으로 뺌: 삭제 단계 중 일부 실패해도 확인(③)까지는 마저 돌리고 싶어서.
                     # 대신 각 삭제 명령의 실패는 FAILED로 누적해 마지막에 종료 코드로 반영한다.
@@ -22,7 +25,7 @@ run() {
     if [ "$CONFIRM" = "yes" ]; then
         "$@" || { echo "    [ERROR] 실패: $*"; FAILED=1; }
     else
-        echo "    (미실행 — CONFIRM=yes 또는 ops --yes 로 실행)"
+        echo "    (미실행 — CONFIRM=yes 필요. ops --yes 만으로는 실행되지 않음)"
     fi
 }
 
@@ -56,7 +59,7 @@ if [ "$ARGOCD_DELETE_PATH" = "argocd" ]; then
         kill "$PF_PID" 2>/dev/null || true
     else
         echo "  \$ argocd app delete ${ROOT_APP} --cascade --yes"
-        echo "    (미실행 — CONFIRM=yes 또는 ops --yes 로 실행)"
+        echo "    (미실행 — CONFIRM=yes 필요. ops --yes 만으로는 실행되지 않음)"
     fi
 else
     echo "[manifest] 경로 B(kubectl) — finalizer 없는 7종(grafana-dashboards·karpenter·keda·"
