@@ -18,7 +18,7 @@ spec:
       serviceAccountName: predict-sa
       containers:
         - name: predict
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:f7f1035
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:776553a
           ports:
             - containerPort: 8003
               name: http
