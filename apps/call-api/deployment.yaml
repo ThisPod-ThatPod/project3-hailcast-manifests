@@ -16,9 +16,19 @@ spec:
         app: hailcast-call-api
     spec:
       serviceAccountName: call-api-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: call-api
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:8db63e5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8000
               name: http

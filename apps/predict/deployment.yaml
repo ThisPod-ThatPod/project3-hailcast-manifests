@@ -16,9 +16,19 @@ spec:
         app: predict
     spec:
       serviceAccountName: predict-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: predict
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:776553a
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8003
               name: http
@@ -28,6 +38,11 @@ spec:
               memory: "512Mi"
             limits:
               memory: "1Gi"
+          # config.py의 model_cache_dir(/tmp/hailcast-models)에 S3에서 받은 모델을
+          # 캐시로 쓴다. readOnlyRootFilesystem=true라 /tmp를 별도로 마운트해야 한다.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           # predict 실제 엔드포인트는 /healthz 하나뿐(/live, /ready 없음).
           # app 레포 k8s/predict-deployment.yaml 참고 스펙과 동일.
           livenessProbe:
@@ -78,3 +93,6 @@ spec:
                 secretKeyRef:
                   name: hailcast-rds-secret
                   key: DB_PASSWORD
+      volumes:
+        - name: tmp
+          emptyDir: {}
