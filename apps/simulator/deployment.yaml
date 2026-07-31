@@ -18,9 +18,17 @@ spec:
         app: hailcast-simulator
     spec:
       serviceAccountName: simulator-sa
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: simulator
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:1f9eced
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8001
               name: http
