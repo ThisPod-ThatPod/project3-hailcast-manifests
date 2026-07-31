@@ -12,11 +12,10 @@
 set -euo pipefail
 
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
-# ★ argo-cd 앱 버전 v3.4.5(현재 클러스터 실제 버전)에 대응하는 차트 버전으로 추정.
-#   argo-helm 릴리스 이력 기준 최선의 추정치라, 처음 실행 전에 아래로 재확인 권장:
-#     helm search repo argo/argo-cd --versions | grep v3.4.5
-#   다른 버전이 나오면 ARGOCD_CHART_VERSION 환경변수로 덮어쓰면 된다.
-ARGOCD_CHART_VERSION="${ARGOCD_CHART_VERSION:-10.1.3}"
+# argo-cd 앱 버전 v3.4.5(현재 클러스터 실제 버전)에 대응하는 차트 버전.
+# 2026-07-31 helm search repo argo/argo-cd --versions | grep v3.4.5 로 직접 확인함:
+#   argo/argo-cd    10.2.1          v3.4.5
+ARGOCD_CHART_VERSION="${ARGOCD_CHART_VERSION:-10.2.1}"
 
 MANIFESTS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VALUES_FILE="${VALUES_FILE:-$MANIFESTS_ROOT/addons/argocd/values.yaml}"
@@ -39,26 +38,24 @@ command -v helm >/dev/null 2>&1 || {
     exit 1
 }
 
-# ── 멱등: 이미 설치돼 있으면 helm install 은 건너뛴다 ──
-if kubectl get crd applications.argoproj.io >/dev/null 2>&1 && [ "${FORCE:-}" != "yes" ]; then
-    info "Argo CD CRD가 이미 있습니다 — helm install은 건너뜁니다(멱등). 강제 재설치는 FORCE=yes."
-else
-    info "Helm repo 준비"
-    helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
-    helm repo update argo >/dev/null
+info "Helm repo 준비"
+helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
+helm repo update argo >/dev/null
 
-    info "네임스페이스 준비: ${ARGOCD_NAMESPACE}"
-    kubectl create namespace "$ARGOCD_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+info "네임스페이스 준비: ${ARGOCD_NAMESPACE}"
+kubectl create namespace "$ARGOCD_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
-    info "Argo CD 설치 (chart argo-cd ${ARGOCD_CHART_VERSION})"
-    helm install argocd argo/argo-cd \
-        -n "$ARGOCD_NAMESPACE" \
-        --version "$ARGOCD_CHART_VERSION" \
-        -f "$VALUES_FILE"
-
-    info "argocd-server rollout 대기(최대 5분)"
-    kubectl -n "$ARGOCD_NAMESPACE" rollout status deploy/argocd-server --timeout=300s
-fi
+# ── 멱등: helm upgrade --install — 없으면 install, 있으면 upgrade ──
+# CRD 존재 여부로만 skip 판단하면, teardown이 중간에 끊겨 CRD만 남고 본체(Deployment)는
+# 없는 상태에서도 "설치됨"으로 오판해 app-of-apps를 바로 적용하다 실패할 수 있다.
+# helm upgrade --install은 이런 부분삭제 상태에서도 안전하게 복구·재현한다(Helm 표준
+# 멱등 관용구). --wait이 rollout까지 기다려주므로 별도 rollout status 체크는 불필요.
+info "Argo CD 설치/갱신 (chart argo-cd ${ARGOCD_CHART_VERSION}, helm upgrade --install)"
+helm upgrade --install argocd argo/argo-cd \
+    -n "$ARGOCD_NAMESPACE" \
+    --version "$ARGOCD_CHART_VERSION" \
+    -f "$VALUES_FILE" \
+    --wait --timeout 300s
 
 kubectl get crd applications.argoproj.io >/dev/null 2>&1 || {
     err "CRD가 여전히 없습니다 — 설치 실패로 보입니다. helm 로그를 확인하세요."
