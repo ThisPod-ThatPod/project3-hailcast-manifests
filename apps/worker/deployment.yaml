@@ -18,6 +18,8 @@ spec:
       serviceAccountName: worker-sa
       securityContext:
         runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: worker
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:4584a90

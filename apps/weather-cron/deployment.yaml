@@ -27,6 +27,8 @@ spec:
       serviceAccountName: weather-cron-sa
       securityContext:
         runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: weather-cron
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:57efcf9

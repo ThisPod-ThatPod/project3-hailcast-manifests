@@ -20,6 +20,8 @@ spec:
       serviceAccountName: simulator-sa
       securityContext:
         runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: simulator
           image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:1f9eced
