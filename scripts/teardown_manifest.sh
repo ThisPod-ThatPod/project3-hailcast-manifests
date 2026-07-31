@@ -4,9 +4,12 @@
 # 소유      : 그룹 C (용빈·지윤)
 # 역할      : K8s 워크로드·ALB 를 먼저 정리한다 (VPC destroy 를 막는 원인 제거).
 # 호출      : ops 의 teardown.sh 가 '가장 먼저' 부른다.
-# 삭제 경로 : 팀 결정(teardown_체크리스트.md 6장 게이트②)에 따라 ARGOCD_DELETE_PATH로 분기.
-#            argocd = argocd CLI (finalizer 자동 부여, 권장)
-#            kubectl = kubectl delete application --all (finalizer 없는 7종은 하위자원 잔존 — 4단계에서 직접 확인 필요)
+# 삭제 경로 : 팀 결정(teardown_체크리스트.md 6장 게이트②, C-1 결정 2026-07-30/31)에
+#            따라 ARGOCD_DELETE_PATH로 분기. 기본값을 argocd로 전환(결정 확정에 따름).
+#            argocd  = kubectl patch로 finalizer 직접 주입 후 kubectl delete (C-1:
+#                      argocd CLI 로그인·port-forward 불필요, cascade 효과만 재현)
+#            kubectl = kubectl delete application --all (finalizer 없는 7종은 하위자원
+#                      잔존 — infra teardown_infra.sh의 Karpenter 노드 가드가 안전망)
 # 안전      : 실제 삭제 명령은 CONFIRM=yes 일 때만 실행. ops 의 --yes 는 단계별
 #            진행 프롬프트만 건너뛸 뿐 CONFIRM 을 넣어주지 않는다(ops/teardown.sh는
 #            infra 단계에만 CONFIRM=yes 를 주입함) — 실제로 지우려면 CONFIRM=yes 를
@@ -16,8 +19,10 @@ set -uo pipefail   # -e는 의도적으로 뺌: 삭제 단계 중 일부 실패�
                     # 대신 각 삭제 명령의 실패는 FAILED로 누적해 마지막에 종료 코드로 반영한다.
 
 CONFIRM="${CONFIRM:-}"
-ARGOCD_DELETE_PATH="${ARGOCD_DELETE_PATH:-kubectl}"   # ★ 팀 결정(게이트②) 확정되면 기본값을 그걸로 바꿔도 됨
+ARGOCD_DELETE_PATH="${ARGOCD_DELETE_PATH:-argocd}"    # C-1 결정 확정 반영(2026-07-31) — kubectl로 되돌리려면 명시적으로 지정
 ROOT_APP="${ROOT_APP:-hailcast-root}"                 # 파일명(app-of-apps.yaml)과 다름 — 실제 Application 이름
+ARGOCD_NS="${ARGOCD_NAMESPACE:-argocd}"
+FINALIZER="resources-finalizer.argocd.argoproj.io"
 FAILED=0
 
 run() {
@@ -44,29 +49,36 @@ fi
 
 # ── ① Application 삭제 — 경로 분기 ──────────────────────────
 if [ "$ARGOCD_DELETE_PATH" = "argocd" ]; then
-    echo "[manifest] 경로 A(argocd CLI) — cascade가 finalizer를 자동 부여, finalizer 없는 7종도 함께 정리됨"
-    if [ "$CONFIRM" = "yes" ]; then
-        PW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' 2>/dev/null | base64 -d)
-        if [ -z "$PW" ]; then
-            echo "  [WARN] 초기 admin 비밀번호를 못 가져옴 — 비밀번호를 바꿨다면 ARGOCD_PASSWORD 환경변수로 넘기세요."
-            PW="${ARGOCD_PASSWORD:-}"
-        fi
-        kubectl -n argocd port-forward svc/argocd-server 8080:443 >/tmp/argocd-pf.log 2>&1 &
-        PF_PID=$!
-        sleep 3
-        argocd login localhost:8080 --username admin --password "$PW" --insecure \
-            && run argocd app delete "$ROOT_APP" --cascade --yes
-        kill "$PF_PID" 2>/dev/null || true
+    # ── C-1: kubectl로 finalizer 주입 후 삭제 — argocd CLI 로그인·port-forward 불필요 ──
+    # argocd app delete --cascade가 내부적으로 하는 일(finalizer 주입 후 삭제)을
+    # kubectl patch로 직접 재현한다. finalizer가 붙으면 ArgoCD 컨트롤러가 하위 자원을
+    # 정리한 뒤에 Application을 지운다.
+    #
+    # ⚠️ 알려진 한계: 이 finalizer는 root(hailcast-root)에만 주입한다. root cascade가
+    # 지우는 건 root가 관리하는 "child Application 오브젝트 자체"까지이지, 그 child가
+    # *자기 자신의* finalizer 없이도 하위 리소스(Karpenter 노드 등)까지 정리해주는 건
+    # 아니다. finalizer 없는 7종(grafana-dashboards·karpenter·keda·kube-prometheus-stack·
+    # metrics-server·opencost·platform-monitoring)은 이 경로에서도 하위 자원이 남을 수
+    # 있다 — infra teardown_infra.sh의 Karpenter 노드 가드가 최종 안전망이다.
+    echo "[manifest] 경로 A(argocd, C-1) — kubectl finalizer 주입, CLI 로그인 없이 cascade 재현"
+
+    if ! kubectl -n "$ARGOCD_NS" get application "$ROOT_APP" >/dev/null 2>&1; then
+        echo "  [WARN] Application '${ROOT_APP}'이(가) 없습니다 — 이미 삭제됐거나 아직 배포 안 됨. 건너뜀."
     else
-        echo "  \$ argocd app delete ${ROOT_APP} --cascade --yes"
-        echo "    (미실행 — CONFIRM=yes 필요. ops --yes 만으로는 실행되지 않음)"
+        echo "  finalizer 주입: metadata.finalizers += ${FINALIZER}"
+        run kubectl -n "$ARGOCD_NS" patch application "$ROOT_APP" \
+            --type merge \
+            -p "{\"metadata\":{\"finalizers\":[\"${FINALIZER}\"]}}"
+
+        echo "  Application 삭제(하위 자원까지 cascade)"
+        run kubectl -n "$ARGOCD_NS" delete application "$ROOT_APP" --wait=true --timeout=300s
     fi
 else
     echo "[manifest] 경로 B(kubectl) — finalizer 없는 7종(grafana-dashboards·karpenter·keda·"
     echo "           kube-prometheus-stack·metrics-server·opencost·platform-monitoring)은"
     echo "           Application만 사라지고 Karpenter 노드·EBS 등 하위 자원이 남을 수 있습니다."
     echo "           → infra teardown_infra.sh의 Karpenter 노드 가드가 잡아줄 것이나, 직접 확인도 권장."
-    run kubectl -n argocd delete application --all
+    run kubectl -n "$ARGOCD_NS" delete application --all
 fi
 
 # ── ② Ingress/ALB 실제 소거 대기 (최대 3분 폴링) ────────────
