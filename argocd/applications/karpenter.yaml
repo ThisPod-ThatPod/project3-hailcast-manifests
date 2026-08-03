@@ -18,7 +18,7 @@ spec:
           - $values/addons/karpenter/values.yaml
 
     - repoURL: https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git
-      targetRevision: dev
+      targetRevision: main
       ref: values
       path: addons/karpenter
       directory:
