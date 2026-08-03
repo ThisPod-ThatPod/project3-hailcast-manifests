@@ -1,0 +1,8 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: hailcast-keda-auth
+  namespace: hailcast
+spec:
+  podIdentity:
+    provider: aws

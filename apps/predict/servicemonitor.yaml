@@ -1,1 +1,13 @@
-# 10.1 Prometheus ServiceMonitor (/metrics 수집)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: predict
+  namespace: hailcast
+spec:
+  selector:
+    matchLabels:
+      app: predict
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

@@ -1,0 +1,9 @@
+settings:
+  clusterName: hailcast-dev-eks
+  interruptionQueue: hailcast-dev
+
+serviceAccount:
+  create: true
+  name: karpenter
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::797452357900:role/hailcast-dev-irsa-karpenter"

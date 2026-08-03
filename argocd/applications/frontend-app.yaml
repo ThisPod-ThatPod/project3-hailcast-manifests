@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: hailcast-root
+  name: frontend
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -10,11 +12,13 @@ spec:
   source:
     repoURL: 'https://github.com/ThisPod-ThatPod/project3-hailcast-manifests.git'
     targetRevision: main
-    path: argocd/applications
+    path: apps/frontend
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: argocd
+    namespace: hailcast
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

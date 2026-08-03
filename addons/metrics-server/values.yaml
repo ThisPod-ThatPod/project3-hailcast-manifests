@@ -1,0 +1,27 @@
+serviceAccount:
+  create: true
+
+rbac:
+  create: true
+
+apiService:
+  create: true
+
+service:
+  type: ClusterIP
+
+hostNetwork:
+  enabled: false
+
+replicas: 1
+
+serviceMonitor:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 200Mi
+  limits:
+    cpu: 300m
+    memory: 400Mi

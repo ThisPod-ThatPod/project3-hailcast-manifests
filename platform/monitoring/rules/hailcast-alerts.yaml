@@ -1,0 +1,158 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hailcast-platform-rules
+  namespace: monitoring
+spec:
+  groups:
+    - name: hailcast.platform
+      rules:
+        - alert: HailcastPodNotReady
+          expr: |
+            max by (namespace, pod) (
+              (
+                kube_pod_status_phase{
+                  namespace="hailcast",
+                  phase=~"Pending|Unknown"
+                } == 1
+                or
+                (
+                  kube_pod_status_phase{
+                    namespace="hailcast",
+                    phase="Running"
+                  } == 1
+                  and on (namespace, pod)
+                  kube_pod_status_ready{
+                    namespace="hailcast",
+                    condition="true"
+                  } == 0
+                )
+              )
+              unless on (namespace, pod)
+              kube_pod_owner{
+                namespace="hailcast",
+                owner_kind="Job"
+              }
+              unless on (namespace, pod)
+              kube_pod_deletion_timestamp{
+                namespace="hailcast"
+              }
+            ) > 0
+          for: 15m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast 파드가 준비되지 않았습니다.
+            description: 파드(Pod) {{ $labels.namespace }}/{{ $labels.pod }}가 15분 이상 Ready 상태가 아닙니다. 파드 상태와 이벤트를 확인하세요.
+
+        - alert: HailcastDeploymentReplicasMismatch
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace="hailcast"
+            }
+              < on (namespace, deployment)
+            kube_deployment_spec_replicas{
+              namespace="hailcast"
+            }
+          for: 10m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast 디플로이먼트에 사용 불가능한 레플리카가 있습니다.
+            description: 디플로이먼트(Deployment) {{ $labels.namespace }}/{{ $labels.deployment }}의 사용 가능한 레플리카 수가 10분 이상 원하는 레플리카 수에 도달하지 못했습니다. 롤아웃과 파드 상태를 확인하세요.
+
+        - alert: HailcastContainerCrashLooping
+          expr: |
+            kube_pod_container_status_waiting_reason{
+              namespace="hailcast",
+              reason="CrashLoopBackOff"
+            } == 1
+          for: 5m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast 컨테이너가 반복적으로 재시작되고 있습니다.
+            description: 컨테이너 {{ $labels.container }}가 속한 파드 {{ $labels.namespace }}/{{ $labels.pod }}가 5분 이상 CrashLoopBackOff 상태입니다. 컨테이너 로그와 종료 원인을 확인하세요.
+
+        - alert: HailcastContainerHighMemory
+          expr: |
+            (
+              max by (namespace, pod, container) (
+                container_memory_working_set_bytes{
+                  namespace="hailcast",
+                  container!="",
+                  container!="POD",
+                  image!=""
+                }
+              )
+              /
+              on (namespace, pod, container)
+              max by (namespace, pod, container) (
+                kube_pod_container_resource_limits{
+                  namespace="hailcast",
+                  resource="memory",
+                  unit="byte"
+                } > 0
+              )
+            ) > 0.9
+          for: 15m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast 컨테이너 메모리 사용률이 높습니다.
+            description: 파드 {{ $labels.namespace }}/{{ $labels.pod }}의 컨테이너 {{ $labels.container }}가 15분 이상 메모리 제한의 90%를 초과해 사용하고 있습니다. 메모리 사용량과 제한 설정을 확인하세요.
+
+        - alert: HailcastPrometheusTargetDown
+          expr: up{namespace="hailcast"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast Prometheus 수집 대상에 연결할 수 없습니다.
+            description: 네임스페이스 {{ $labels.namespace }}의 Prometheus 수집 대상 {{ $labels.job }}/{{ $labels.instance }}가 5분 이상 응답하지 않습니다. 대상 엔드포인트와 네트워크 상태를 확인하세요.
+
+        - alert: HailcastPrometheusTargetMissing
+          expr: absent(up{namespace="hailcast", service="predict"})
+          for: 10m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast Predict 메트릭 수집 대상이 발견되지 않았습니다.
+            description: Prometheus가 10분 이상 서비스(Service) hailcast/predict의 수집 대상을 발견하지 못했습니다. ServiceMonitor, Service, 엔드포인트와 Prometheus selector 설정을 확인하세요.
+
+        - alert: HailcastQueueBacklogHigh
+          expr: |
+            max by (namespace, service) (
+              hailcast_queue_size{
+                namespace="hailcast",
+                service="predict"
+              }
+            ) > 1000
+          for: 2m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast 처리 대기열 적체가 높습니다.
+            description: Hailcast 호출 대기열의 visible message 수가 2분 이상 1,000건을 초과했습니다. Worker 처리 상태와 KEDA 스케일링 상태를 확인하세요.
+
+        - alert: HailcastHPAScalingInactive
+          expr: |
+            kube_horizontalpodautoscaler_status_condition{
+              namespace="hailcast",
+              condition="ScalingActive",
+              status="false"
+            } == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast HPA가 원하는 레플리카 수를 계산하지 못하고 있습니다.
+            description: HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }}가 10분 이상 ScalingActive=false 상태이며 유효한 메트릭으로 원하는 레플리카 수를 계산하지 못하고 있습니다. HPA 조건과 메트릭 상태를 확인하세요.

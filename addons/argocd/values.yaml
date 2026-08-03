@@ -1,0 +1,10 @@
+# =============================================================
+# 파일위치 : project3-hailcast-manifests/addons/argocd/values.yaml
+# 역할     : install_argocd.sh(Helm 설치)가 -f 로 읽는 values 파일.
+# 현재 상태 : 의도적으로 비워둔다 — 차트 기본값 그대로 사용.
+#            기존(install.yaml 기반) 설치도 사실상 기본값이었어서, 여기서
+#            동작을 바꾸는 게 아니라 "재현 가능하게 고정"하는 데 의미가 있다.
+# 커스터마이징(★): argocd-server 노출 방식(ClusterIP 유지 vs Ingress),
+#            HA 여부, resources 등이 필요해지면 여기 추가하고 install_argocd.sh는
+#            수정 없이 그대로 읽는다.
+# =============================================================

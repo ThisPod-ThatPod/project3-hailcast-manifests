@@ -1,0 +1,37 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hailcast-scaledobject-patcher
+  namespace: hailcast
+rules:
+  - apiGroups:
+      - keda.sh
+    resources:
+      - scaledobjects
+    resourceNames:
+      - hailcast-worker-scaler
+    verbs:
+      - get
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    resourceNames:
+      - hailcast-worker
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hailcast-predict-scaledobject
+  namespace: hailcast
+subjects:
+  - kind: ServiceAccount
+    name: predict-sa
+    namespace: hailcast
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hailcast-scaledobject-patcher

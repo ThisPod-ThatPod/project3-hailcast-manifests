@@ -1,0 +1,34 @@
+# ESO(External Secrets Operator) 설치 values
+# IRSA로 AWS Secrets Manager/Parameter Store 접근
+# SA 이름(external-secrets)·네임스페이스(external-secrets)는
+# platform/external-secrets/secretstore.yaml의 serviceAccountRef와 반드시 일치해야 함
+installCRDs: false
+
+serviceAccount:
+  create: true
+  name: external-secrets
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::797452357900:role/hailcast-dev-irsa-eso"
+
+resources: # 다른 addon과 동일하게 Karpenter가 크기를 인식하도록 requests 명시
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    memory: "128Mi"
+
+webhook:
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      memory: "64Mi"
+
+certController:
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "32Mi"
+    limits:
+      memory: "128Mi"

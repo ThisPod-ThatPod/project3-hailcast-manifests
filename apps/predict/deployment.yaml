@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predict
+  namespace: hailcast
+  labels:
+    app: predict
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: predict
+  template:
+    metadata:
+      labels:
+        app: predict
+    spec:
+      serviceAccountName: predict-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: predict
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:776553a
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8003
+              name: http
+          resources: # ⑧ Karpenter 오토스케일링 시연을 위한 리소스 요청값
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
+          # config.py의 model_cache_dir(/tmp/hailcast-models)에 S3에서 받은 모델을
+          # 캐시로 쓴다. readOnlyRootFilesystem=true라 /tmp를 별도로 마운트해야 한다.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          # predict 실제 엔드포인트는 /healthz 하나뿐(/live, /ready 없음).
+          # app 레포 k8s/predict-deployment.yaml 참고 스펙과 동일.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8003
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          env:
+            - name: KEDA_ENABLED
+              value: "true"
+            - name: KEDA_NAMESPACE
+              value: "hailcast"
+            - name: PREDICTION_MAX_AGE_SECONDS # ④ 1시간 조기 만료 방지
+              value: "18000"
+            - name: JSON_STORE_BACKEND # ⑤ S3 스토리지 연동 명시
+              value: "s3"
+            - name: S3_BUCKET
+              value: "hailcast-dev-model-artifacts-fbd3700f"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
+            - name: KEDA_SCALEDOBJECT_NAME
+              value: "hailcast-worker-scaler"
+            - name: WORKER_DEPLOYMENT_NAME
+              value: "hailcast-worker"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "hailcast"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_HOST
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_PASSWORD
+      volumes:
+        - name: tmp
+          emptyDir: {}

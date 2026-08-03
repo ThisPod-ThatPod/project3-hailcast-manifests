@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hailcast-call-api
+  namespace: hailcast
+  labels:
+    app: hailcast-call-api
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: hailcast-call-api
+  template:
+    metadata:
+      labels:
+        app: hailcast-call-api
+    spec:
+      serviceAccountName: call-api-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: call-api
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:8db63e5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: JSON_STORE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              value: "hailcast-dev-model-artifacts-fbd3700f"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_HOST
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "hailcast"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hailcast-rds-secret
+                  key: DB_PASSWORD
+            # TODO(용빈): ALB 도입 후 도메인 확정되면 창원님이 실도메인 값으로 교체 예정
+            - name: CORS_ALLOW_ORIGINS
+              value: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:18080"

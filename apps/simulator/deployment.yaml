@@ -1,0 +1,62 @@
+# simulator — replicas 1 고정 (시연 부하 발원지, 여러 개 뜨면 트래픽 카운트가 꼬임)
+# app repo k8s/simulator-deployment.yaml 참고, 우리 레포 스타일(개별 env)로 이관
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hailcast-simulator
+  namespace: hailcast
+  labels:
+    app: hailcast-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hailcast-simulator
+  template:
+    metadata:
+      labels:
+        app: hailcast-simulator
+    spec:
+      serviceAccountName: simulator-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: simulator
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:1f9eced
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: AWS_REGION
+              value: "ap-northeast-2"
+            - name: JSON_STORE_BACKEND
+              value: "s3"
+            - name: S3_BUCKET
+              value: "hailcast-dev-model-artifacts-fbd3700f"
+            - name: CALL_API_URL
+              value: "http://hailcast-call-api:8000"
+          resources:
+            requests:
+              cpu: "3000m"
+              memory: "512Mi"
+            limits:
+              cpu: "6000m"
+              memory: "1280Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+            # app repo 참고: 최대부하(600rps)에서 이벤트루프가 순간적으로 밀리는 걸 실측함.
+            # 데모용 부하발생기라 잠깐의 지연을 "죽음"으로 취급하지 않도록 여유를 크게 둔다.
+            failureThreshold: 5
