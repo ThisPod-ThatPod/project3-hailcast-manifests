@@ -52,17 +52,24 @@ argocd/app-of-apps.yaml
 - **predict**
   - Deployment
   - Service
+  - Ingress
+  - ServiceAccount
   - ServiceMonitor
   - RBAC
 
 - **simulator**
   - Deployment
+  - Service
+  - ServiceAccount
 
 - **weather-cron**
-  - CronJob
+  - Deployment
+  - Service
+  - ServiceAccount
 
 - **worker**
   - Deployment
+  - ServiceAccount
   - KEDA ScaledObject
   - TriggerAuthentication
 
@@ -115,12 +122,12 @@ argocd/app-of-apps.yaml
 
 - Kubernetes Cluster 접근 권한
 - 올바른 `kubectl` Context
-- Argo CD 설치
-- `applications.argoproj.io` CRD
+- Argo CD 설치 (`make install-argocd`로 최초 설치 가능, `applications.argoproj.io` CRD로 설치 여부 확인)
 - `make`
 - `bash`
 - `kubectl`
 - `jq`
+- `helm` (`make install-argocd` 실행 시 필요)
 - Manifest가 참조하는 AWS IAM Role 및 리소스
 - AWS Secrets Manager / Parameter Store 값
 
@@ -144,6 +151,12 @@ make deploy-dry-run
 
 # 배포
 
+Argo CD가 클러스터에 없다면 먼저 설치합니다(Helm 기반, 멱등 — 이미 있으면 건너뜀).
+
+```bash
+make install-argocd
+```
+
 Root Application을 최초 등록하거나 GitOps 배포를 시작합니다.
 
 ```bash
@@ -154,6 +167,12 @@ make deploy
 
 ```bash
 make status
+```
+
+ArgoCD Application을 삭제하고 Ingress/ALB 소거까지 확인합니다(`CONFIRM=yes` 필요).
+
+```bash
+make teardown   # 또는 make destroy (동일)
 ```
 
 ---
