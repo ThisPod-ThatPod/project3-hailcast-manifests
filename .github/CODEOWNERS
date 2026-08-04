@@ -1,7 +1,6 @@
-# 최종 배포 기준은 main이다. 이미지 태그 자동 갱신은 app main 빌드 후
-# manifests main을 대상으로 하는 외부 자동화 계약이며, 실제 push 권한과
-# branch protection/ruleset 예외는 GitHub 저장소 설정에서 별도로 관리한다.
-# CODEOWNERS는 권한을 설정하지 않으며, 사람이 apps/*/deployment.yaml을
+# app dev 빌드 후 애플리케이션 저장소 Workflow가 MANIFESTS_PAT 인증으로
+# manifests dev의 이미지 태그를 갱신하고, Argo CD는 manifests dev를 감시한다.
+# CODEOWNERS는 push 권한을 설정하지 않으며, 사람이 apps/*/deployment.yaml을
 # PR로 고칠 때 앱팀 리뷰를 자동 요청하는 역할만 한다.
 # (계기: #47 - 수동 태그 변경이 앱팀 확인 없이 지나간 사례)
 apps/*/deployment.yaml @CHANGWONLEE2000 @wodurl

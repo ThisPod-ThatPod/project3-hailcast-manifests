@@ -25,7 +25,7 @@
 | 2 | Ready 노드 2대 | 규약서 §5-8, 10:00 노드그룹 min2/desired2 |
 | 3 | RDS `available` | 규약서 §5-8, 09:50 시작(기동에 수 분) |
 | 4 | argocd·external-secrets 파드 | ArgoCD → ESO 순으로 복원 |
-| 5 | `hailcast-rds-secret` 존재 확인 | 밤새도 안 사라짐(오브젝트 유지) + ExternalSecret 둘 다 Merge라 ESO도 재생성 불가. 없어지는 건 destroy 재구축 때뿐(근거: infra PR#69) |
+| 5 | `hailcast-rds-secret` 존재 확인 | 야간절전에는 유지된다. 빈 클러스터 재구축에서는 placeholder를 Merge 대상으로 먼저 배치하며, 실제 값 동기화 여부를 확인해야 한다. 동기화되지 않으면 infra `docs/비용관리.md`의 수동 생성 절차를 사용한다. |
 | 6 | 앱 파드 기동 | Secret이 앱보다 늦으면 CrashLoop/ConfigError |
 | 7 | 전체 Application Synced/Healthy | 위가 정상이어도 sync가 틀어질 수 있음 |
 
