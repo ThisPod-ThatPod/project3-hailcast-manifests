@@ -178,15 +178,16 @@ RDS 연결 정보는 [`platform/external-secrets/`](platform/external-secrets/)�
 
 ### Alertmanager Telegram Secret
 
-Telegram Alertmanager Secret은 ExternalSecret으로 관리하지 않습니다. 운영자가 승인된 보안 전달 경로를 사용해 `monitoring` namespace에 `alertmanager-telegram` Secret을 수동 생성해야 합니다.
+Telegram Alertmanager Secret은 `monitoring` 네임스페이스의 `alertmanager-telegram` Secret(Opaque)에 저장하여 관리합니다.
+
+Telegram Bot Token은 초기 설정 이후 변경 빈도가 낮아 현재는 Kubernetes Secret을 운영자가 수동으로 생성하는 방식을 사용합니다. Secret 실값은 Git 저장소나 프로젝트 문서에 저장하지 않습니다.
 
 Alertmanager가 요구하는 key 이름은 다음과 같습니다.
 
 - `bot-token`
 - `chat-id`
 
-Secret 실값은 Git 저장소나 프로젝트 문서에 저장하지 않습니다.
-monitoring namespace와 kube-prometheus-stack이 준비된 뒤 alertmanager-telegram Secret을 수동 생성합니다. 이후 Alertmanager가 Secret을 정상적으로 참조하는지 확인합니다.
+`monitoring` 네임스페이스와 `kube-prometheus-stack`이 준비된 뒤 `alertmanager-telegram` Secret을 생성합니다. 이후 Alertmanager가 Secret을 정상적으로 참조하는지 확인합니다.
 
 ## 브랜치·배포 계약
 
@@ -265,6 +266,9 @@ make deploy
 ```
 
 `monitoring` namespace와 kube-prometheus-stack이 준비되면 승인된 보안 방식으로 `alertmanager-telegram` Secret을 수동 생성합니다.
+
+Secret 생성 후 Alertmanager가 정상 상태로 복구되고
+Telegram 알림이 정상적으로 전송되는지 확인합니다.
 
 ### 6. 배포 상태 확인
 
