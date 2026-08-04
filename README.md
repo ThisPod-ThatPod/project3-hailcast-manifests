@@ -204,6 +204,8 @@ app dev
 
 이미지 태그 자동화는 애플리케이션 저장소 Workflow와 GitHub 저장소 설정에 의존합니다. 이 저장소에는 이미지 태그를 갱신하는 GitHub Actions Workflow가 없습니다.
 
+리소스 이름의 `hailcast-dev-*`에서 `dev`는 AWS 환경 이름이며 Git 브랜치와 무관합니다.
+
 ## 재구축 가이드
 
 ### 1. 저장소와 인프라 기준 확인

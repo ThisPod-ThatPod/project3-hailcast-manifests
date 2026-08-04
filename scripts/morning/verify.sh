@@ -171,10 +171,10 @@ printf '\n'
 #    K8s 오브젝트(Secret 포함)는 그대로 남는다. ExternalSecret 2개가 둘 다
 #    creationPolicy: Merge라 ESO도 스스로 새로 만들 수는 없다(생성은
 #    Owner만 가능). 실제로 없어지는 건 destroy 후 재구축했을 때뿐이다.
-#    대응은 두 겹이다 — 평소엔
-#    platform/external-secrets/secret-rds-placeholder.yaml을 GitOps로 먼저 배치해
-#    자동으로 채우고, 긴급 상황엔 infra repo docs/비용관리.md의
-#    "재구축 시 hailcast-rds-secret" 절에 따라 사람이 수동 생성한다.
+#    재구축 시 platform/external-secrets/secret-rds-placeholder.yaml을 GitOps로
+#    먼저 배치해 ExternalSecret의 Merge 대상이 존재하도록 구성한다. 빈 클러스터에서
+#    실제로 값이 동기화되는지는 확인이 필요하며, 동기화되지 않으면 infra repo
+#    docs/비용관리.md의 "재구축 시 hailcast-rds-secret" 수동 생성 절차를 사용한다.
 printf '%s\n' '--- 5. Secret 존재 확인 ---'
 if morning_secret_key_exists "$MORNING_APP_NAMESPACE" "$MORNING_RDS_SECRET" "DB_HOST"; then
   pass "$MORNING_RDS_SECRET 존재 (DB_HOST 키 확인)"
