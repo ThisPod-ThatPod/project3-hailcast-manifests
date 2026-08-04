@@ -79,6 +79,6 @@ spec:
                 secretKeyRef:
                   name: hailcast-rds-secret
                   key: DB_PASSWORD
-            # TODO(용빈): ALB 도입 후 도메인 확정되면 창원님이 실도메인 값으로 교체 예정
+            # 운영 트래픽은 CloudFront·ALB의 same-origin /api 경로를 사용하며, 아래 값은 로컬 개발 origin 허용 목록이다.
             - name: CORS_ALLOW_ORIGINS
               value: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:18080"
