@@ -2,7 +2,7 @@
 
 Hailcast는 기상 데이터와 실제 호출 흐름을 바탕으로 택시 호출 수요를 예측하고, 예측 결과와 실시간 큐 적체를 함께 사용해 Worker 규모를 조절하는 AI 기반 서비스입니다. 예측에 따른 선제 확장, SQS 적체에 반응하는 KEDA 확장, 늘어난 Pod를 수용하기 위한 Karpenter 노드 공급 과정을 하나의 흐름으로 구현합니다.
 
-이 저장소는 Hailcast 애플리케이션과 플랫폼 구성의 Kubernetes **desired state**를 관리하는 GitOps 저장소입니다. Argo CD가 `main` 브랜치를 감시하며 App-of-Apps 구조로 클러스터 상태를 Git에 선언된 상태와 지속적으로 동기화합니다.
+이 저장소는 Hailcast 애플리케이션과 플랫폼 구성의 Kubernetes **desired state**를 관리하는 GitOps 저장소입니다. Argo CD가 `dev` 브랜치를 감시하며 App-of-Apps 구조로 클러스터 상태를 Git에 선언된 상태와 지속적으로 동기화합니다.
 
 ## 이 저장소의 역할과 관리 범위
 
@@ -21,8 +21,6 @@ Hailcast는 기상 데이터와 실제 호출 흐름을 바탕으로 택시 호�
 - EKS, VPC, RDS, SQS, S3, ECR, IAM 등 Terraform 인프라
 - 이미지 빌드·태그 갱신 자동화와 GitHub 저장소 설정
 - 상세 장애 대응 및 서비스 운영 runbook
-
-프로젝트의 최종 제출 및 재구축 기준 브랜치는 각 저장소의 main입니다.
 
 ## 전체 서비스 및 요청 처리 흐름
 
@@ -76,7 +74,7 @@ hailcast-root
 ```
 
 Root Application과 모든 Child Application은
-이 저장소의 main 브랜치를 Git source로 사용합니다.
+이 저장소의 dev 브랜치를 Git source로 사용합니다.
 
 모든 Application은 자동 동기화, prune, self-heal을 사용합니다. Controller가 관리하는 런타임 필드에 대해서만 필요한 범위의 Argo CD diff ignore를 사용합니다.
 
@@ -192,26 +190,24 @@ monitoring namespace와 kube-prometheus-stack이 준비된 뒤 alertmanager-tele
 
 ## 브랜치·배포 계약
 
-최종 제출과 재구축의 기준은 app, infra, manifests 세 저장소의 `main`입니다.
+현재 이미지 배포와 GitOps 동기화는 다음 흐름을 사용합니다.
 
 ```text
-app main
+app dev
   └── 변경된 서비스 이미지 build
         └── ECR에 immutable SHA 태그 push
-              └── manifests main의 해당 Deployment 이미지 태그 갱신
-                    └── Argo CD가 manifests main 감지
+              └── manifests dev의 해당 Deployment 이미지 태그 갱신
+                    └── Argo CD가 manifests dev 감지
                           └── EKS 배포
 ```
 
 이미지 태그 자동화는 애플리케이션 저장소 Workflow와 GitHub 저장소 설정에 의존합니다. 이 저장소에는 이미지 태그를 갱신하는 GitHub Actions Workflow가 없습니다.
 
-리소스 이름에 포함된 `hailcast-dev-*`의 `dev`는 Git branch가 아니라 현재 AWS 환경과 리소스 네이밍 계약입니다. 브랜치를 main으로 전환해도 EKS, ECR, IRSA, SQS, S3, Parameter Store 등 환경 리소스 이름은 변경하지 않습니다.
-
-## main 기준 재구축 가이드
+## 재구축 가이드
 
 ### 1. 저장소와 인프라 기준 확인
 
-각 저장소의 제출 기준 `main`을 사용합니다. 인프라가 먼저 준비되어 다음 Kubernetes manifest 의존성을 제공해야 합니다.
+인프라가 먼저 준비되어 다음 Kubernetes manifest 의존성을 제공해야 합니다.
 
 - 대상 EKS cluster와 올바른 `kubectl` context
 - Manifest가 참조하는 IAM Role과 IRSA 신뢰 관계
@@ -256,7 +252,7 @@ make deploy-dry-run
 
 ### 5. Argo CD와 Root Application 등록
 
-신규 cluster에 Argo CD가 없으면 다음 명령이 내부 설치 스크립트를 호출해 Helm `upgrade --install` 방식으로 Argo CD 설치 상태를 맞추고 `main`을 가리키는 Root Application을 등록합니다.
+신규 cluster에 Argo CD가 없으면 다음 명령이 내부 설치 스크립트를 호출해 Helm `upgrade --install` 방식으로 Argo CD 설치 상태를 맞추고 `dev`를 가리키는 Root Application을 등록합니다.
 
 ```bash
 make install-argocd
