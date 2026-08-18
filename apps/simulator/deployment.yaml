@@ -40,7 +40,7 @@ spec:
             - name: JSON_STORE_BACKEND
               value: "s3"
             - name: S3_BUCKET
-              value: "hailcast-dev-model-artifacts-fbd3700f"
+              value: "hailcast-dev-model-artifacts-58b4f8fd"
             - name: CALL_API_URL
               value: "http://hailcast-call-api:8000"
           resources:

@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:797452357900:certificate/f874ce9a-56d7-47a5-9819-12508db8e596"
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:ap-northeast-2:797452357900:certificate/ac119b3a-0135-4ce2-b6d3-024f9d2acda2"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/group.name: hailcast-dev
     alb.ingress.kubernetes.io/group.order: "10"

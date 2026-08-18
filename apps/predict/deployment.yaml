@@ -67,7 +67,7 @@ spec:
             - name: JSON_STORE_BACKEND # ⑤ S3 스토리지 연동 명시
               value: "s3"
             - name: S3_BUCKET
-              value: "hailcast-dev-model-artifacts-fbd3700f"
+              value: "hailcast-dev-model-artifacts-58b4f8fd"
             - name: SQS_QUEUE_URL
               value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
             - name: KEDA_SCALEDOBJECT_NAME

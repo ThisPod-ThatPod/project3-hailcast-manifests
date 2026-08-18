@@ -46,7 +46,7 @@ spec:
             - name: JSON_STORE_BACKEND
               value: "s3"
             - name: S3_BUCKET
-              value: "hailcast-dev-model-artifacts-fbd3700f"
+              value: "hailcast-dev-model-artifacts-58b4f8fd"
           resources:
             requests:
               cpu: "100m"
