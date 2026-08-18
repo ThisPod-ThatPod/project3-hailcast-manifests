@@ -58,6 +58,8 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 15
           env:
+            - name: PREDICTION_ACCURACY_LOG_ENABLED  # 오답노트 DI 활성화 (G5)
+              value: "true"
             - name: KEDA_ENABLED
               value: "true"
             - name: KEDA_NAMESPACE
