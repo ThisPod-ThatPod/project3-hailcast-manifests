@@ -1,3 +1,11 @@
+# serviceAccount는 최상위(opencost: 블록 밖) — 차트 스키마 확인 완료
+# (helm show values opencost/opencost --version 2.5.27:70줄)
+serviceAccount:
+  create: true
+  name: opencost
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::797452357900:role/hailcast-dev-irsa-opencost"
+
 opencost:
   mcp:
     enabled: false
