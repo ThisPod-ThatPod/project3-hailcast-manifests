@@ -35,18 +35,24 @@ spec:
               memory: "512Mi"
             limits:
               memory: "1Gi"
-          # worker는 SQS 소비자라 HTTP 포트가 없어서 exec probe로 프로세스
-          # 생존만 확인한다 (채택 확정). 한계: SQS 폴링이 AwsError로 계속
-          # 실패해도 worker_service.py의 루프는 죽지 않고 재시도만 하므로,
-          # 이 probe로는 "떠있음"만 확인되고 "정상 동작"까지는 못 잡는다.
-          # 개선 방향(백로그): 폴링 성공마다 하트비트 파일을 갱신하고
-          # exec probe가 파일 최신성을 확인하는 방식 — worker_service.py
-          # 코드 변경 필요해 앱팀과 협의 대상.
+          # 하트비트 파일 최신성으로 실제 폴링 동작 여부를 판단한다(app PR#49,
+          # 2026-08-18 반영). poll_once() 성공마다 갱신되고, SQS 접근 자체가
+          # AwsError로 실패하는 경로에서는 안 찍는다 — pgrep(프로세스 생존만
+          # 확인) 대비 "실제로 멈춤"을 감지할 수 있다.
+          # 신선도 1분: sqs_long_poll_seconds=20초 대비 3배 여유.
+          # initialDelaySeconds 30: 첫 폴링이 롱폴링(최대 20초)이라 하트비트가
+          # 20초 시점에야 처음 생길 수 있음 — 15초로 두면 오탐 재시작 위험.
           livenessProbe:
             exec:
-              command: ["pgrep", "-f", "worker.py"]
-            initialDelaySeconds: 15
+              command:
+                - /bin/sh
+                - -c
+                - "find /var/run/heartbeat/worker.heartbeat -mmin -1 | grep -q ."
+            initialDelaySeconds: 30
             periodSeconds: 20
+          volumeMounts:
+            - name: heartbeat
+              mountPath: /var/run/heartbeat
           env:
             - name: SQS_QUEUE_URL
               value: "https://sqs.ap-northeast-2.amazonaws.com/797452357900/hailcast-dev-call-queue"
@@ -69,3 +75,6 @@ spec:
                 secretKeyRef:
                   name: hailcast-rds-secret
                   key: DB_PASSWORD
+      volumes:
+        - name: heartbeat
+          emptyDir: {}
