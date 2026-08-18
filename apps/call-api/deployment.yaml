@@ -22,7 +22,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: call-api
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:32c72c2
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-call-api:0322f70
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
