@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Worker 디플로이먼트",
+      "title": "Worker 공급 및 가용 상태",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -23,16 +23,16 @@
     },
     {
       "id": 2,
-      "title": "Worker 목표 복제본 수",
+      "title": "Worker 복제본 공급 추이",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Worker 디플로이먼트(Deployment)에 설정된 목표 복제본 수다.",
+      "description": "KEDA/HPA가 요구한 Worker 복제본 수가 Deployment 목표에 반영되고 Ready 및 Available 상태에 도달하는 흐름을 동일한 시간축에서 비교합니다.",
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "h": 9,
+        "w": 12,
         "x": 0,
         "y": 1
       },
@@ -42,9 +42,36 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "목표 복제본",
+          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "HPA 요구 복제본",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Deployment 목표 복제본",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Ready 복제본",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_status_replicas_available{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Available 복제본",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -78,18 +105,18 @@
       }
     },
     {
-      "id": 3,
-      "title": "Worker Ready 복제본 수",
-      "type": "timeseries",
+      "id": 11,
+      "title": "Worker 복제본 충족률",
+      "type": "gauge",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "파드 readiness 상태를 통과해 Ready로 보고된 Worker 복제본 수다. 롤아웃 중에는 Deployment의 Available 복제본 수와 잠시 다를 수 있다.",
+      "description": "KEDA/HPA가 요구한 Worker 복제본 수 대비 실제 Ready 상태인 Worker 복제본의 비율입니다. 100%는 요구된 복제본이 모두 준비된 상태를 의미하며, 확장 직후에는 새 Pod가 Ready 상태가 되는 동안 일시적으로 낮아질 수 있습니다.",
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
+        "h": 9,
+        "w": 4,
+        "x": 12,
         "y": 1
       },
       "targets": [
@@ -98,52 +125,62 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Ready 복제본",
+          "expr": "clamp_max(\n  100 *\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  )\n  /\n  clamp_min(\n    max(\n      kube_horizontalpodautoscaler_status_desired_replicas{\n        namespace=\"$namespace\",\n        horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n      }\n    ),\n    1\n  ),\n  100\n)",
+          "legendFormat": "복제본 충족률",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "percent",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 100
               }
             ]
-          }
+          },
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       }
     },
     {
-      "id": 4,
-      "title": "Worker 사용 가능 복제본 수",
-      "type": "timeseries",
+      "id": 24,
+      "title": "Workload 가용 복제본 현황",
+      "type": "table",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "디플로이먼트가 minReadySeconds 조건을 충족해 사용 가능하다고 보고한 Worker 복제본 수다. 현재 minReadySeconds=0이므로 Ready 복제본 수와 대부분 동일하게 보일 수 있다.",
+      "description": "현재 Namespace의 각 Deployment에 대해 목표 복제본 수, Available 복제본 수와 가용 복제본 비율을 표시합니다. 현재 시점의 Workload 공급 상태를 나타내며, 일정 기간의 가용성을 평가하는 SLO 지표는 아닙니다.",
       "gridPos": {
-        "h": 7,
+        "h": 9,
         "w": 8,
         "x": 16,
         "y": 1
@@ -154,161 +191,122 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_status_replicas_available{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "사용 가능 복제본",
+          "expr": "max by (deployment) (\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\"\n  } > 0\n)",
+          "format": "table",
+          "instant": true,
           "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 5,
-      "title": "Worker 사용 불가능 복제본 수",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "디플로이먼트가 사용 불가능하다고 보고한 Worker 복제본 수다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 8
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_deployment_status_replicas_unavailable{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "사용 불가능 복제본",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "min": 0,
-          "custom": {
-            "axisSoftMax": 1
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
+          "expr": "max by (deployment) (\n  kube_deployment_status_replicas_available{\n    namespace=\"$namespace\"\n  }\n)\nand on (deployment)\nmax by (deployment) (\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\"\n  } > 0\n)",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
         },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
-    },
-    {
-      "id": 6,
-      "title": "Worker Ready 부족분",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "목표 복제본 수에서 Ready 복제본 수를 뺀 부족분이다. 0은 충족, 1 이상은 확인이 필요한 상태로 표시한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 8
-      },
-      "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "clamp_min(\n  max(\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)\n  -\n  max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n),\n  0\n)",
-          "legendFormat": "Ready 부족분",
-          "refId": "A"
+          "expr": "100 *\nclamp_max(\n  max by (deployment) (\n    kube_deployment_status_replicas_available{\n      namespace=\"$namespace\"\n    }\n  )\n  /\n  max by (deployment) (\n    kube_deployment_spec_replicas{\n      namespace=\"$namespace\"\n    } > 0\n  ),\n  1\n)",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "deployment",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "deployment": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3
+            },
+            "renameByName": {
+              "deployment": "Deployment",
+              "Value #A": "목표 복제본",
+              "Value #B": "가용 복제본",
+              "Value #C": "가용 복제본 비율"
+            }
+          }
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 1
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 100
               }
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "가용 복제본 비율"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
       },
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": true
       }
     },
     {
@@ -320,67 +318,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 10
       },
       "panels": []
-    },
-    {
-      "id": 8,
-      "title": "실행 중인 Worker 파드",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Running 상태인 Worker 파드 수다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 16
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Running\"\n  }\n)",
-          "legendFormat": "실행 중",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "wideLayout": true
-      }
     },
     {
       "id": 9,
@@ -393,9 +333,9 @@
       "description": "Pending 상태인 Worker 파드 수다. 1 이상이면 스케줄링 또는 노드 공급 지연 가능성을 확인해야 한다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 16
+        "w": 6,
+        "x": 0,
+        "y": 11
       },
       "targets": [
         {
@@ -452,12 +392,12 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "각 시점 기준 최근 5분 동안 동일한 Worker 파드 안에서 worker 컨테이너의 재시작 counter가 증가한 양을 표시한다. 파드 삭제·교체·재생성은 컨테이너 재시작이 아니므로 이 패널에 집계되지 않는다.",
+      "description": "각 시점 기준 최근 5분 동안 동일한 Worker 파드 안에서 Worker 컨테이너의 재시작 누적값이 증가한 양을 표시한다. 파드 삭제·교체·재생성은 컨테이너 재시작이 아니므로 이 패널에 집계되지 않는다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 16
+        "w": 18,
+        "x": 6,
+        "y": 11
       },
       "targets": [
         {
@@ -506,70 +446,6 @@
       }
     },
     {
-      "id": 11,
-      "title": "Worker Ready 비율",
-      "type": "gauge",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "목표 복제본 수 대비 Ready 복제본 수의 비율이다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 23
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "100 *\nmax(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)\n/\nclamp_min(max(\n  kube_deployment_spec_replicas{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n), 1)",
-          "legendFormat": "Ready 비율",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "green",
-                "value": 100
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      }
-    },
-    {
       "id": 12,
       "title": "Worker 리소스",
       "type": "row",
@@ -578,7 +454,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 18
       },
       "panels": []
     },
@@ -592,10 +468,10 @@
       },
       "description": "전체 Worker 컨테이너의 CPU 사용량을 합산해 표시한다.",
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 8,
         "x": 0,
-        "y": 31
+        "y": 19
       },
       "targets": [
         {
@@ -646,12 +522,12 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "전체 Worker 컨테이너의 메모리 working set을 합산해 표시한다.",
+      "description": "전체 Worker 컨테이너에서 실제로 사용 중인 메모리(Working Set)를 합산해 표시한다.",
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 8,
         "x": 8,
-        "y": 31
+        "y": 19
       },
       "targets": [
         {
@@ -704,10 +580,10 @@
       },
       "description": "전체 Worker 컨테이너의 CPU 요청량 대비 실제 사용률이다.",
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 8,
         "x": 16,
-        "y": 31
+        "y": 19
       },
       "targets": [
         {
@@ -767,7 +643,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 25
       },
       "panels": []
     },
@@ -781,10 +657,10 @@
       },
       "description": "관리형 노드와 Karpenter 노드를 포함해 Ready 상태인 전체 클러스터 노드 수다.",
       "gridPos": {
-        "h": 7,
+        "h": 5,
         "w": 8,
         "x": 0,
-        "y": 39
+        "y": 26
       },
       "targets": [
         {
@@ -839,10 +715,10 @@
       },
       "description": "관리형 노드와 Karpenter 노드를 포함해 Ready 상태가 false 또는 unknown인 노드 수다. 1 이상은 확인이 필요한 상태로 표시한다.",
       "gridPos": {
-        "h": 7,
+        "h": 5,
         "w": 8,
         "x": 8,
-        "y": 39
+        "y": 26
       },
       "targets": [
         {
@@ -901,10 +777,10 @@
       },
       "description": "관리형 노드와 Karpenter 노드를 포함해 스케줄링이 비활성화된 노드 수다. 1 이상은 확인이 필요한 상태로 표시한다.",
       "gridPos": {
-        "h": 7,
+        "h": 5,
         "w": 8,
         "x": 16,
-        "y": 39
+        "y": 26
       },
       "targets": [
         {
@@ -964,9 +840,9 @@
       "description": "관리형 노드와 Karpenter 노드를 구분하지 않고 인스턴스별 CPU 사용률을 표시한다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 12,
         "x": 0,
-        "y": 46
+        "y": 31
       },
       "targets": [
         {
@@ -1020,9 +896,9 @@
       "description": "관리형 노드와 Karpenter 노드를 구분하지 않고 인스턴스별 메모리 사용률을 표시한다.",
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 46
+        "w": 12,
+        "x": 12,
+        "y": 31
       },
       "targets": [
         {
@@ -1063,122 +939,6 @@
           "mode": "multi",
           "sort": "none"
         }
-      }
-    },
-    {
-      "id": 22,
-      "title": "노드 CPU 용량",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "관리형 노드와 Karpenter 노드를 포함한 전체 클러스터 노드의 CPU 용량 합계다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 46
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_node_status_capacity{\n    resource=\"cpu\",\n    unit=\"core\"\n  }\n)",
-          "legendFormat": "CPU 용량",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "cores",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 23,
-      "title": "노드 메모리 용량",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "관리형 노드와 Karpenter 노드를 포함한 전체 클러스터 노드의 메모리 용량 합계다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 53
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_node_status_capacity{\n    resource=\"memory\",\n    unit=\"byte\"\n  }\n)",
-          "legendFormat": "메모리 용량",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "wideLayout": true
       }
     }
   ],
