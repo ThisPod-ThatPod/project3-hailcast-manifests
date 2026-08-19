@@ -44,7 +44,9 @@ spec:
             component: platform
           annotations:
             summary: Hailcast 파드가 준비되지 않았습니다.
-            description: 파드(Pod) {{ $labels.namespace }}/{{ $labels.pod }}가 15분 이상 Ready 상태가 아닙니다. 파드 상태와 이벤트를 확인하세요.
+            description: 파드(Pod) {{ $labels.namespace }}/{{ $labels.pod }}가 15분 이상 Ready 상태가 아닙니다.
+            impact: 해당 파드가 정상적으로 트래픽을 처리하지 못할 수 있습니다.
+            action: Pod 상태 · Events · Container 로그
 
         - alert: HailcastDeploymentReplicasMismatch
           expr: |
@@ -61,7 +63,10 @@ spec:
             component: platform
           annotations:
             summary: Hailcast 디플로이먼트에 사용 불가능한 레플리카가 있습니다.
-            description: 디플로이먼트(Deployment) {{ $labels.namespace }}/{{ $labels.deployment }}의 사용 가능한 레플리카 수가 10분 이상 원하는 레플리카 수에 도달하지 못했습니다. 롤아웃과 파드 상태를 확인하세요.
+            description: 디플로이먼트(Deployment) {{ $labels.namespace }}/{{ $labels.deployment }}의 사용 가능한 레플리카 수가 10분 이상 원하는 레플리카 수에 도달하지 못했습니다.
+            current: '현재 사용 가능 레플리카: {{ printf "%.0f" $value }}개'
+            impact: 서비스의 가용 처리 용량이 의도한 레플리카 수보다 낮을 수 있습니다.
+            action: Deployment rollout · Pod 상태 · Replica 상태
 
         - alert: HailcastContainerCrashLooping
           expr: |
@@ -75,7 +80,9 @@ spec:
             component: platform
           annotations:
             summary: Hailcast 컨테이너가 반복적으로 재시작되고 있습니다.
-            description: 컨테이너 {{ $labels.container }}가 속한 파드 {{ $labels.namespace }}/{{ $labels.pod }}가 5분 이상 CrashLoopBackOff 상태입니다. 컨테이너 로그와 종료 원인을 확인하세요.
+            description: 컨테이너 {{ $labels.container }}가 속한 파드 {{ $labels.namespace }}/{{ $labels.pod }}가 5분 이상 CrashLoopBackOff 상태입니다.
+            impact: 해당 컨테이너의 기능이 지속적으로 중단되거나 불안정할 수 있습니다.
+            action: Container 로그 · 종료 코드 · Restart 횟수
 
         - alert: HailcastContainerHighMemory
           expr: |
@@ -104,7 +111,10 @@ spec:
             component: platform
           annotations:
             summary: Hailcast 컨테이너 메모리 사용률이 높습니다.
-            description: 파드 {{ $labels.namespace }}/{{ $labels.pod }}의 컨테이너 {{ $labels.container }}가 15분 이상 메모리 제한의 90%를 초과해 사용하고 있습니다. 메모리 사용량과 제한 설정을 확인하세요.
+            description: 파드 {{ $labels.namespace }}/{{ $labels.pod }}의 컨테이너 {{ $labels.container }}가 15분 이상 메모리 제한의 90%를 초과해 사용하고 있습니다.
+            current: '메모리 Limit 사용률: {{ $value | humanizePercentage }}'
+            impact: 메모리 제한 도달 시 OOMKilled와 컨테이너 재시작이 발생할 수 있습니다.
+            action: Memory 사용 추이 · Limit · OOMKilled 여부
 
         - alert: HailcastPrometheusTargetDown
           expr: up{namespace="hailcast"} == 0
@@ -114,7 +124,9 @@ spec:
             component: platform
           annotations:
             summary: Hailcast Prometheus 수집 대상에 연결할 수 없습니다.
-            description: 네임스페이스 {{ $labels.namespace }}의 Prometheus 수집 대상 {{ $labels.job }}/{{ $labels.instance }}가 5분 이상 응답하지 않습니다. 대상 엔드포인트와 네트워크 상태를 확인하세요.
+            description: 네임스페이스 {{ $labels.namespace }}의 Prometheus 수집 대상 {{ $labels.job }}/{{ $labels.instance }}가 5분 이상 응답하지 않습니다.
+            impact: 해당 대상의 메트릭이 수집되지 않아 Dashboard와 Alert 판단에 공백이 생길 수 있습니다.
+            action: Service · Endpoint · ServiceMonitor · 네트워크
 
         - alert: HailcastPrometheusTargetMissing
           expr: absent(up{namespace="hailcast", service="predict"})
@@ -124,7 +136,9 @@ spec:
             component: platform
           annotations:
             summary: Hailcast Predict 메트릭 수집 대상이 발견되지 않았습니다.
-            description: Prometheus가 10분 이상 서비스(Service) hailcast/predict의 수집 대상을 발견하지 못했습니다. ServiceMonitor, Service, 엔드포인트와 Prometheus selector 설정을 확인하세요.
+            description: Prometheus가 10분 이상 서비스(Service) hailcast/predict의 수집 대상을 발견하지 못했습니다.
+            impact: Predict Runtime 메트릭과 이를 사용하는 관측 화면에 데이터 공백이 생깁니다.
+            action: ServiceMonitor · Service · Endpoint · selector
 
         - alert: HailcastQueueBacklogHigh
           expr: |
@@ -140,7 +154,10 @@ spec:
             component: platform
           annotations:
             summary: Hailcast 처리 대기열 적체가 높습니다.
-            description: Hailcast 호출 대기열의 visible message 수가 2분 이상 1,000건을 초과했습니다. Worker 처리 상태와 KEDA 스케일링 상태를 확인하세요.
+            description: Hailcast 호출 대기열의 visible message 수가 2분 이상 1,000건을 초과했습니다.
+            current: '현재 Queue backlog: {{ printf "%.0f" $value }}건'
+            impact: Call 처리 대기시간이 증가하고 Worker 처리 용량이 부족할 수 있습니다.
+            action: Queue · Worker Ready · HPA Desired · KEDA
 
         - alert: HailcastHPAScalingInactive
           expr: |
@@ -155,4 +172,6 @@ spec:
             component: platform
           annotations:
             summary: Hailcast HPA가 원하는 레플리카 수를 계산하지 못하고 있습니다.
-            description: HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }}가 10분 이상 ScalingActive=false 상태이며 유효한 메트릭으로 원하는 레플리카 수를 계산하지 못하고 있습니다. HPA 조건과 메트릭 상태를 확인하세요.
+            description: HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }}가 10분 이상 ScalingActive=false 상태이며 유효한 메트릭으로 원하는 레플리카 수를 계산하지 못하고 있습니다.
+            impact: 반응형 스케일링이 현재 부하에 맞는 레플리카 수를 계산하지 못할 수 있습니다.
+            action: HPA Condition · Metric 수집 · KEDA 상태

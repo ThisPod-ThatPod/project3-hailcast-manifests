@@ -9,8 +9,8 @@
   "links": [],
   "panels": [
     {
-      "id": 1,
-      "title": "반응형 스케일링 요약",
+      "id": 15,
+      "title": "서비스 요청 처리 흐름",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -22,217 +22,19 @@
       "panels": []
     },
     {
-      "id": 2,
-      "title": "처리 대기열 (Visible Queue)",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Prometheus가 수집한 hailcast_queue_size이며 SQS visible message 기준이다. KEDA의 queueLength=500은 HPA external metric의 AverageValue 500으로 적용되어 복제본당 처리 목표 계산에 사용되며 장애 임계값이 아니다. KEDA external metric은 visible message와 in-flight message를 함께 반영할 수 있어 이 값과 다를 수 있다. 운영 경보는 visible message가 2분 이상 1,000건을 초과할 때 발생하는 별도 PrometheusRule을 사용한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
-          "legendFormat": "처리 대기열 적체",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 10,
-      "title": "HPA 최대 복제본 수",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Worker KEDA HPA에 설정된 spec.maxReplicas 값이다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_spec_max_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "최대 복제본 수",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-    "fieldConfig": {
-      "defaults": {
-        "unit": "short",
-        "mappings": []
-      },
-      "overrides": []
-    },
-    "options": {
-      "colorMode": "none",
-      "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 11,
-      "title": "KEDA Operator 상태",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
-          "legendFormat": "KEDA Operator",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                "text": "사용 불가"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                "text": "사용 가능"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 6,
-      "title": "반응형 스케일링 타임라인",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 8
-      },
-      "panels": []
-    },
-    {
-      "id": 12,
-      "title": "처리 대기열 / HPA / Worker",
+      "id": 16,
+      "title": "Call / SQS Publish 처리량 추이",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "동일 시간축에서 visible message 기준 처리 대기열 적체, 적용 기준값, HPA 목표·현재 복제본과 Worker Ready의 반응을 비교한다. KEDA queueLength=500은 HPA AverageValue로 사용하는 복제본당 처리 목표이며, 운영 경보 기준인 visible message 1,000건/2분과 목적이 다르다. 처리 대기열은 오른쪽 축, 복제본 계열은 왼쪽 축이다.",
+      "description": "Call API가 노출하는 pod별 Counter를 5분 rate로 합산해 Call 접수량과 SQS Publish 성공량을 비교한다. 두 Counter는 rollout/restart 시 reset되므로 누적 합계 대신 rate를 사용한다. 정상 상태에서 두 Series가 거의 겹치는 것은 자연스러운 동작이다.",
       "gridPos": {
-        "h": 10,
-        "w": 16,
+        "h": 8,
+        "w": 24,
         "x": 0,
-        "y": 9
+        "y": 1
       },
       "targets": [
         {
@@ -240,51 +42,27 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
-          "legendFormat": "Queue backlog",
-          "refId": "A"
+          "expr": "sum(rate(hailcast_request_total{service=\"hailcast-call-api\"}[5m]))",
+          "legendFormat": "Call 접수",
+          "refId": "A",
+          "range": true
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "적용 기준값",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA 목표",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_current_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA 현재",
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Worker Ready",
-          "refId": "E"
+          "expr": "sum(rate(hailcast_queue_publish_total{service=\"hailcast-call-api\"}[5m]))",
+          "legendFormat": "SQS Publish",
+          "refId": "B",
+          "range": true
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 0,
+          "unit": "suffix: 건/s",
+          "decimals": 2,
+          "min": 0,
           "mappings": [],
           "color": {
             "mode": "palette-classic"
@@ -292,8 +70,8 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Replicas",
-            "axisPlacement": "left",
+            "axisLabel": "처리량 (건/s)",
+            "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 8,
@@ -324,28 +102,56 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Queue backlog"
+              "options": "Call 접수"
             },
             "properties": [
               {
-                "id": "displayName",
-                "value": "처리 대기열 적체"
+                "id": "color",
+                "value": {
+                  "fixedColor": "#E7C84A",
+                  "mode": "fixed"
+                }
               },
               {
-                "id": "custom.axisPlacement",
-                "value": "right"
-                },
-                {
-                  "id": "custom.axisLabel",
-                  "value": "처리 대기열 적체"
-                },
-                {
-                  "id": "custom.drawStyle",
-                "value": "bars"
+                "id": "custom.lineWidth",
+                "value": 3
               },
               {
                 "id": "custom.fillOpacity",
-                "value": 18
+                "value": 6
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SQS Publish"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#66C7D8",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    10,
+                    10
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
               }
             ]
           }
@@ -369,19 +175,32 @@
       }
     },
     {
-      "id": 13,
-      "title": "Pending 파드 · Ready 노드",
-      "type": "timeseries",
+      "id": 1,
+      "title": "Queue 현황",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "title": "현재 Queue",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Pending Worker와 Ready 노드 수를 같은 시간축에서 비교한다. Ready 노드는 관리형 노드와 Karpenter 노드를 포함한 전체 클러스터 노드 수이며, NodeClaim을 직접 관측하는 패널은 아니다. Pending Worker가 1 이상이면 스케줄링 지연 가능성을 점검해야 한다.",
+      "description": "Prometheus가 수집한 SQS visible message 기준의 현재 처리 대기열입니다. KEDA의 queueLength=500은 복제본당 처리 목표 계산에 사용하는 값이며 장애 임계값이 아닙니다. 운영 경보는 visible message가 2분 이상 1,000건을 초과할 때 발생하는 별도 PrometheusRule을 사용합니다.",
       "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 9
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 10
       },
       "targets": [
         {
@@ -389,8 +208,163 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
-          "legendFormat": "Pending Worker",
+          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
+          "legendFormat": "현재 Queue",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "decimals": 0,
+          "mappings": [],
+          "color": {
+            "fixedColor": "#A8B3C2",
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 56
+        },
+        "textMode": "value",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 11,
+      "title": "KEDA Operator 상태",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시한다.",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 21
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or max(\n    kube_deployment_status_replicas_available{\n      exported_namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
+          "legendFormat": "KEDA Operator",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "color": "#D96B75",
+                  "index": 0,
+                "text": "사용 불가"
+                },
+                "1": {
+              "color": "green",
+                  "index": 1,
+                "text": "사용 가능"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#D96B75",
+                "value": null
+              },
+              {
+            "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 36
+        },
+        "textMode": "value",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 6,
+      "title": "반응형 스케일링",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "title": "반응형 스케일링 흐름",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Queue는 right Y-axis의 저강도 회색 context로, HPA 요구와 Worker Ready는 전면의 Replica 선으로 표시한다. 원본 샘플과 시간 해상도는 그대로 유지한다.",
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
+          "legendFormat": "Queue (context)",
           "refId": "A"
         },
         {
@@ -398,9 +372,18 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
-          "legendFormat": "Ready 노드",
+          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "HPA 요구",
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Worker Ready",
+          "refId": "D"
         }
       ],
       "fieldConfig": {
@@ -414,18 +397,18 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
+            "axisLabel": "Replicas",
+            "axisPlacement": "left",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 8,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "linear",
+            "lineInterpolation": "stepAfter",
             "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
@@ -442,7 +425,40 @@
             }
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Queue (context)"},
+            "properties": [
+              {"id": "unit", "value": "locale"},
+              {"id": "min", "value": 0},
+              {"id": "color", "value": {"fixedColor": "#7E8796", "mode": "fixed"}},
+              {"id": "custom.axisPlacement", "value": "right"},
+              {"id": "custom.axisLabel", "value": "Queue"},
+              {"id": "custom.axisGridShow", "value": false},
+              {"id": "custom.lineInterpolation", "value": "linear"},
+              {"id": "custom.lineWidth", "value": 1},
+              {"id": "custom.fillOpacity", "value": 8},
+              {"id": "custom.showPoints", "value": "never"}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "HPA 요구"},
+            "properties": [
+              {"id": "color", "value": {"fixedColor": "#FCBE17", "mode": "fixed"}},
+              {"id": "custom.lineWidth", "value": 5},
+              {"id": "custom.fillOpacity", "value": 0}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Worker Ready"},
+            "properties": [
+              {"id": "color", "value": {"fixedColor": "#3286F6", "mode": "fixed"}},
+              {"id": "custom.lineWidth", "value": 3},
+              {"id": "custom.fillOpacity", "value": 0},
+              {"id": "custom.lineStyle", "value": {"dash": [10, 6], "fill": "dash"}}
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -462,21 +478,110 @@
       }
     },
     {
-      "id": 14,
-      "title": "처리 대기열 상세",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
+      "id": 13,
+      "title": "현재 스케일링 상태",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "panels": []
+      "description": "현재 HPA 요구와 Worker Ready 복제본을 Metric identity 색상으로 비교한다.",
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
+          "legendFormat": "HPA 요구",
+          "refId": "A",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "legendFormat": "Worker Ready",
+          "refId": "B",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "fieldMinMax": false,
+          "mappings": [],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Worker Ready"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+              "fixedColor": "#3286F6",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HPA 요구"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+              "fixedColor": "#FCBE17",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "displayMode": "basic",
+        "maxVizHeight": 300,
+        "minVizHeight": 32,
+        "minVizWidth": 8,
+        "namePlacement": "top",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      }
     },
     {
       "id": 3,
-      "title": "처리 대기열 최댓값 (5분)",
+      "title": "최근 5분 최대 Queue",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -484,10 +589,10 @@
       },
       "description": "최근 5분 hailcast_queue_size의 최댓값이며 SQS visible message 기준이다. 이 패널 자체에는 색상 임계값을 적용하지 않으며, 운영 경보는 별도 PrometheusRule 기준을 사용한다.",
       "gridPos": {
-        "h": 7,
+        "h": 5,
         "w": 12,
-        "x": 0,
-        "y": 20
+        "x": 12,
+        "y": 10
       },
       "targets": [
         {
@@ -496,21 +601,26 @@
             "uid": "${datasource}"
           },
           "expr": "max(\n  max_over_time(\n    hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"}[5m]\n  )\n)",
-          "legendFormat": "최댓값",
+          "legendFormat": "최근 5분 최대 Queue",
           "refId": "A"
         }
       ],
     "fieldConfig": {
       "defaults": {
-        "unit": "short",
-        "mappings": []
+        "unit": "locale",
+        "decimals": 0,
+        "mappings": [],
+        "color": {
+          "fixedColor": "#A8B3C2",
+          "mode": "fixed"
+        }
       },
       "overrides": []
     },
     "options": {
-      "colorMode": "none",
-      "graphMode": "area",
-        "justifyMode": "auto",
+      "colorMode": "value",
+      "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -519,59 +629,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 4,
-      "title": "처리 대기열 변화 (5분)",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "현재 visible message 기준 처리 대기열 적체와 5분 전 값을 비교한다. 시계열 생성 후 5분이 지나지 않았거나 과거 시계열이 없으면 데이터 없음으로 표시될 수 있다.",
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 20
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})\n-\nmax(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"} offset 5m)",
-          "legendFormat": "처리 대기열 변화",
-          "refId": "A"
-        }
-      ],
-    "fieldConfig": {
-      "defaults": {
-        "unit": "short",
-        "mappings": [],
-        "custom": {
-          "axisSoftMin": -1,
-          "axisSoftMax": 1
-        }
-      },
-      "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "text": {
+          "valueSize": 56
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
+        "textMode": "value",
+        "wideLayout": true
       }
     }
   ],
@@ -636,6 +698,6 @@
   "timezone": "browser",
   "title": "02 처리 대기열 및 KEDA",
   "uid": "hailcast-02-queue-keda",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
