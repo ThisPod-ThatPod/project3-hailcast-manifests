@@ -30,7 +30,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: weather-cron
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:d4d166d
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:282b380
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
