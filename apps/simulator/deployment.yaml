@@ -24,7 +24,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: simulator
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:e2d7a14
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:a54de5f
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -48,8 +48,7 @@ spec:
               cpu: "3000m"
               memory: "512Mi"
             limits:
-              cpu: "6000m"
-              memory: "1280Mi"
+              memory: "512Mi"
           livenessProbe:
             httpGet:
               path: /healthz

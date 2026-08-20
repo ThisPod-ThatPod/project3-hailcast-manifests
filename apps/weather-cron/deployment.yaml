@@ -30,7 +30,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: weather-cron
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:282b380
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-weather-cron:a54de5f
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -52,8 +52,7 @@ spec:
               cpu: "100m"
               memory: "256Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              memory: "256Mi"
           livenessProbe:
             httpGet:
               path: /healthz

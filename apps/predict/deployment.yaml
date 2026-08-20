@@ -22,7 +22,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: predict
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:32c72c2
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:a54de5f
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -37,7 +37,7 @@ spec:
               cpu: "250m"
               memory: "512Mi"
             limits:
-              memory: "1Gi"
+              memory: "512Mi"
           # config.py의 model_cache_dir(/tmp/hailcast-models)에 S3에서 받은 모델을
           # 캐시로 쓴다. readOnlyRootFilesystem=true라 /tmp를 별도로 마운트해야 한다.
           volumeMounts:
