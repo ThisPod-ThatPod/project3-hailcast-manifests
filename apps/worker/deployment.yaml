@@ -22,7 +22,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: worker
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:32c72c2
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-worker:3dd70a5
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

@@ -24,7 +24,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: simulator
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:edd8593
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:3dd70a5
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
