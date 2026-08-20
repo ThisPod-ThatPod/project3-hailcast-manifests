@@ -22,7 +22,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: predict
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:32c72c2
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:edd8593
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
