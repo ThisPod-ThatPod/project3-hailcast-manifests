@@ -29,7 +29,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Call API가 노출하는 pod별 Counter를 5분 rate로 합산해 Call 접수량과 SQS Publish 성공량을 비교한다. 두 Counter는 rollout/restart 시 reset되므로 누적 합계 대신 rate를 사용한다. 정상 상태에서 두 Series가 거의 겹치는 것은 자연스러운 동작이다.",
+      "description": "Call API가 노출하는 pod별 Counter의 5분 rate를 합산해 Call 접수량과 SQS Publish 성공량을 비교합니다. 두 Counter는 rollout/restart 시 reset되므로 누적 합계 대신 rate를 사용합니다. 정상 상태에서 두 Series가 거의 겹치는 것은 자연스럽습니다. 지속적인 차이는 Call 진입 후 Publish 기록까지의 지연이나 이상을 살펴보는 보조 신호이지만, 정확한 실패 건수·실패율·HTTP 오류율을 의미하지 않습니다.",
       "gridPos": {
         "h": 8,
         "w": 24,
@@ -217,7 +217,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "locale",
+          "unit": "suffix: 건",
           "decimals": 0,
           "mappings": [],
           "color": {
@@ -254,7 +254,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시한다.",
+      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시합니다.",
       "gridPos": {
         "h": 5,
         "w": 8,
@@ -350,7 +350,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Queue는 right Y-axis의 저강도 회색 context로, HPA 요구와 Worker Ready는 전면의 Replica 선으로 표시한다. 원본 샘플과 시간 해상도는 그대로 유지한다.",
+      "description": "Queue는 right Y-axis의 저강도 회색 context로, HPA 요구와 Worker Ready는 전면의 Replica 선으로 표시합니다. 원본 샘플과 시간 해상도는 그대로 유지합니다.",
       "gridPos": {
         "h": 10,
         "w": 16,
@@ -429,7 +429,7 @@
           {
             "matcher": {"id": "byName", "options": "Queue (context)"},
             "properties": [
-              {"id": "unit", "value": "locale"},
+              {"id": "unit", "value": "suffix: 건"},
               {"id": "min", "value": 0},
               {"id": "color", "value": {"fixedColor": "#7E8796", "mode": "fixed"}},
               {"id": "custom.axisPlacement", "value": "right"},
@@ -485,7 +485,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "현재 HPA 요구와 Worker Ready 복제본을 Metric identity 색상으로 비교한다.",
+      "description": "현재 HPA 요구와 Worker Ready 복제본을 Metric identity 색상으로 비교합니다.",
       "gridPos": {
         "h": 5,
         "w": 8,
@@ -587,7 +587,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "최근 5분 hailcast_queue_size의 최댓값이며 SQS visible message 기준이다. 이 패널 자체에는 색상 임계값을 적용하지 않으며, 운영 경보는 별도 PrometheusRule 기준을 사용한다.",
+      "description": "최근 5분 hailcast_queue_size의 최댓값이며 SQS visible message 기준입니다. 이 패널 자체에는 색상 임계값을 적용하지 않으며, 운영 경보는 별도 PrometheusRule 기준을 사용합니다.",
       "gridPos": {
         "h": 5,
         "w": 12,
@@ -607,7 +607,7 @@
       ],
     "fieldConfig": {
       "defaults": {
-        "unit": "locale",
+        "unit": "suffix: 건",
         "decimals": 0,
         "mappings": [],
         "color": {

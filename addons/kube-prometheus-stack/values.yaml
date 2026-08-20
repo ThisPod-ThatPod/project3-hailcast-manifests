@@ -77,7 +77,7 @@ grafana:
                     maxDataPoints: 43200
                     parser: jq-backend
                     refId: A
-                    root_selector: '[{unavailable: (if (.scheduler_running == false or .last_error != null or .latest_generated_at == null or ((now * 1000) - ((.latest_generated_at | sub("\\.[0-9]+Z$";"Z") | fromdateiso8601) * 1000)) > 28800000) then 1 else 0 end)}]'
+                    root_selector: '[{unavailable: (if (.scheduler_running == false or .last_error != null or .latest_generated_at == null or ((now * 1000) - ((.latest_generated_at | sub("\\.[0-9]+Z$";"Z") | fromdateiso8601) * 1000)) > 18000000) then 1 else 0 end)}]'
                     source: url
                     type: json
                     url: /api/prediction/status
@@ -204,7 +204,7 @@ grafana:
               for: 0s
               annotations:
                 summary: 최신 Prediction을 정상적으로 사용할 수 없습니다.
-                description: Prediction Scheduler 중지, 실행 오류, 최신 예측 미생성 또는 8시간 이상 stale 상태가 감지되었습니다.
+                description: Prediction Scheduler 중지, 실행 오류, 최신 예측 미생성 또는 scaler 기준인 5시간 이상 stale 상태가 감지되었습니다.
                 current: 'Scheduler: {{ "{{" }} index $values.E.Labels "scheduler_running" {{ "}}" }} · 최신 생성: {{ "{{" }} index $values.E.Labels "latest_generated_at" {{ "}}" }} · 최근 오류: {{ "{{" }} index $values.E.Labels "last_error" {{ "}}" }}'
                 impact: Predictive Scaling 기준 갱신에 영향을 줄 수 있습니다. Reactive Scaling 경로의 장애를 의미하지는 않습니다.
                 action: Scheduler · latest_generated_at · last_error · Predictive Scaling 기준

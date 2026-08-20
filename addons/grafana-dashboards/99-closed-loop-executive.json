@@ -1,7 +1,5 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "annotations": {"list": []},
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -10,874 +8,221 @@
   "panels": [
     {
       "id": 1,
-      "title": "런타임 요약",
+      "title": "Closed-loop 현재 상태",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
       "panels": []
     },
     {
-      "id": 2,
-      "title": "Predict 수집 대상 상태",
+      "id": 31,
+      "title": "Prediction 운영 상태",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Prometheus가 Predict 서비스의 메트릭 수집 대상을 scrape할 수 있는지 표시한다. 예측 생성 여부, 최신성 또는 정확도를 검증하지 않는다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 0,
-        "y": 1
-      },
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+      "description": "Prediction Scheduler 실행 여부, 최근 오류, 최신 생성 시각 존재 여부와 scaler 기준 5시간 freshness를 확인합니다. 현재 Prediction의 운영 상태를 나타내며, now+4h 전체 coverage나 모든 미래 target_time 존재를 보장하지 않습니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
-          "legendFormat": "Predict 수집 상태",
+          "columns": [{"selector": "unavailable", "text": "Prediction 상태", "type": "number"}],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "table",
+          "parser": "jq-backend",
           "refId": "A",
-          "instant": true,
-          "range": false
+          "root_selector": "[{unavailable: (if (.scheduler_running == false or .last_error != null or .latest_generated_at == null or ((now * 1000) - ((.latest_generated_at | sub(\"\\\\.[0-9]+Z$\";\"Z\") | fromdateiso8601) * 1000)) > 18000000) then 1 else 0 end)}]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/prediction/status",
+          "url_options": {"data": "", "method": "GET"}
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                "text": "수집 불가"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                "text": "수집 가능"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
+          "noValue": "사용 불가",
+          "mappings": [{"type": "value", "options": {"0": {"color": "green", "index": 0, "text": "사용 가능"}, "1": {"color": "red", "index": 1, "text": "사용 불가"}}}],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}
         },
         "overrides": []
       },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     },
     {
-      "id": 3,
-      "title": "KEDA Operator 상태",
+      "id": 32,
+      "title": "HPA 요구 복제본",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "kube-state-metrics 기준으로 KEDA Operator 디플로이먼트(Deployment)에 사용 가능한 복제본이 있는지 표시한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 5,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0",
-          "legendFormat": "KEDA Operator",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                "text": "사용 불가"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                "text": "사용 가능"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 24,
-      "title": "적용된 스케일링 기준값",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. 예측값 자체나 ScaledObject spec.minReplicaCount 원본을 표시하는 패널이 아니다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 10,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "적용 기준값",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "KEDA/HPA가 현재 요구하는 Worker 복제본 수를 표시합니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)", "legendFormat": "HPA 요구", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "mappings": [], "color": {"mode": "fixed", "fixedColor": "#FCBE17"}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     },
     {
       "id": 5,
-      "title": "Worker Ready 파드",
+      "title": "Worker Ready",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "kube-state-metrics가 보고한 Worker 디플로이먼트(Deployment)의 Ready 복제본 수다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 15,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Worker Ready",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "kube-state-metrics가 보고한 Worker Deployment의 Ready 복제본 수를 표시합니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)", "legendFormat": "Worker Ready", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "mappings": [], "color": {"mode": "fixed", "fixedColor": "#3286F6"}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     },
     {
-      "id": 25,
-      "title": "기준값 대비 Ready 부족분",
+      "id": 33,
+      "title": "Worker Replica Fulfillment",
+      "type": "gauge",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "HPA가 요구한 Worker 복제본 수 대비 실제 Ready 복제본의 비율입니다. 100%는 요구된 복제본이 모두 준비된 상태를 의미하며, 확장 직후에는 일시적으로 낮아질 수 있습니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "clamp_max(\n  100 *\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  )\n  /\n  clamp_min(\n    max(\n      kube_horizontalpodautoscaler_status_desired_replicas{\n        namespace=\"$namespace\",\n        horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n      }\n    ),\n    1\n  ),\n  100\n)", "legendFormat": "복제본 충족률", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 0, "min": 0, "max": 100, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 80}, {"color": "green", "value": 100}]}}, "overrides": []},
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true, "sizing": "auto"}
+    },
+    {
+      "id": 34,
+      "title": "현재 Queue",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "적용된 HPA 기준값에서 Worker Ready 복제본 수를 뺀 부족분이다. 0은 기준값 충족, 1 이상은 Ready 부족을 의미한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
-          "legendFormat": "Ready 부족분",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "green",
-                  "index": 0,
-                "text": "충족"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Prometheus가 수집한 SQS visible message 기준의 현재 처리 대기열을 표시합니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})", "legendFormat": "현재 Queue", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "suffix: 건", "decimals": 0, "mappings": [], "color": {"mode": "fixed", "fixedColor": "#A8B3C2"}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
+    },
+    {
+      "id": 3,
+      "title": "KEDA Operator",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "kube-state-metrics 기준으로 KEDA Operator Deployment에 사용 가능한 복제본이 있는지 표시합니다.",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "(\n  max(\n    kube_deployment_status_replicas_available{\n      namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or max(\n    kube_deployment_status_replicas_available{\n      exported_namespace=\"keda\",\n      deployment=\"keda-operator\"\n    }\n  )\n  or vector(0)\n) > bool 0", "legendFormat": "KEDA Operator", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "mappings": [{"type": "value", "options": {"0": {"color": "#D96B75", "index": 0, "text": "사용 불가"}, "1": {"color": "green", "index": 1, "text": "사용 가능"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "#D96B75", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     },
     {
       "id": 7,
-      "title": "스케일링 타임라인",
+      "title": "스케일링 / 처리 흐름",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 8
-      },
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
       "panels": []
     },
     {
       "id": 26,
-      "title": "처리 대기열 / HPA / Worker",
+      "title": "스케일링 / Worker 공급 흐름",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "동일 시간축에서 visible message 기준 처리 대기열 적체, 적용 기준값, HPA 목표·현재 복제본과 Worker Ready의 반응을 비교한다. 처리 대기열은 오른쪽 축, 복제본 계열은 왼쪽 축이다.",
-      "gridPos": {
-        "h": 10,
-        "w": 16,
-        "x": 0,
-        "y": 9
-      },
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Prediction 기반으로 적용된 HPA 최소값, HPA의 현재 요구량, 실제 Worker Ready와 Queue 변화를 동일 시간축에서 비교합니다. Queue는 right Y-axis의 저강도 context로 표시합니다.",
+      "gridPos": {"h": 11, "w": 16, "x": 0, "y": 6},
       "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})",
-          "legendFormat": "Queue backlog",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "적용 기준값",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA 목표",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_status_current_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "HPA 현재",
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
-          "legendFormat": "Worker Ready",
-          "refId": "E"
-        }
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(hailcast_queue_size{namespace=\"$namespace\", service=\"$predict_service\"})", "legendFormat": "Queue (context)", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)", "legendFormat": "HPA 적용 최소값", "refId": "B"},
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(\n  kube_horizontalpodautoscaler_status_desired_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)", "legendFormat": "HPA 요구", "refId": "C"},
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)", "legendFormat": "Worker Ready", "refId": "D"}
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "mappings": [],
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
+        "defaults": {"unit": "short", "decimals": 0, "min": 0, "mappings": [], "color": {"mode": "fixed", "fixedColor": "#CCCCDC"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Replicas", "axisPlacement": "left", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 0, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "stepAfter", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}},
         "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Queue backlog"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "처리 대기열 적체"
-              },
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 18
-              }
-            ]
-          }
+          {"matcher": {"id": "byName", "options": "Queue (context)"}, "properties": [{"id": "unit", "value": "suffix: 건"}, {"id": "min", "value": 0}, {"id": "color", "value": {"fixedColor": "#7E8796", "mode": "fixed"}}, {"id": "custom.axisPlacement", "value": "right"}, {"id": "custom.axisLabel", "value": "Queue"}, {"id": "custom.axisGridShow", "value": false}, {"id": "custom.lineInterpolation", "value": "linear"}, {"id": "custom.lineWidth", "value": 1}, {"id": "custom.fillOpacity", "value": 8}, {"id": "custom.showPoints", "value": "never"}]},
+          {"matcher": {"id": "byName", "options": "HPA 적용 최소값"}, "properties": [{"id": "color", "value": {"fixedColor": "#D9A400", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}, {"id": "custom.lineStyle", "value": {"dash": [2, 4], "fill": "dash"}}, {"id": "custom.fillOpacity", "value": 0}]},
+          {"matcher": {"id": "byName", "options": "HPA 요구"}, "properties": [{"id": "color", "value": {"fixedColor": "#FCBE17", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 5}, {"id": "custom.fillOpacity", "value": 0}]},
+          {"matcher": {"id": "byName", "options": "Worker Ready"}, "properties": [{"id": "color", "value": {"fixedColor": "#3286F6", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}, {"id": "custom.lineStyle", "value": {"dash": [10, 6], "fill": "dash"}}, {"id": "custom.fillOpacity", "value": 0}]}
         ]
       },
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}
     },
     {
-      "id": 27,
-      "title": "Pending 파드 · Ready 노드",
+      "id": 35,
+      "title": "Call / SQS Publish 처리량",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Pending Worker와 Ready 노드 수를 같은 시간축에서 비교한다. Ready 노드는 관리형 노드와 Karpenter 노드를 포함한 전체 클러스터 노드 수이며, NodeClaim을 직접 관측하는 패널은 아니다. Pending Worker가 1 이상이면 스케줄링 지연 가능성을 점검해야 한다.",
-      "gridPos": {
-        "h": 10,
-        "w": 8,
-        "x": 16,
-        "y": 9
-      },
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "정상 상태에서는 Call 접수와 SQS Publish 처리량이 비슷하게 움직입니다. 지속적인 차이는 Call에서 SQS로 전달되는 구간의 지연이나 이상을 살펴보는 보조 신호이며, 정확한 실패 건수·실패율·HTTP 오류율을 의미하지 않습니다.",
+      "gridPos": {"h": 11, "w": 8, "x": 16, "y": 6},
       "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)",
-          "legendFormat": "Pending Worker",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=\"true\"\n  }\n)",
-          "legendFormat": "Ready 노드",
-          "refId": "B"
-        }
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(rate(hailcast_request_total{service=\"hailcast-call-api\"}[5m]))", "legendFormat": "Call 접수", "refId": "A", "range": true},
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(rate(hailcast_queue_publish_total{service=\"hailcast-call-api\"}[5m]))", "legendFormat": "SQS Publish", "refId": "B", "range": true}
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "mappings": [],
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
-        "overrides": []
+        "defaults": {"unit": "suffix: 건/s", "decimals": 2, "min": 0, "mappings": [], "color": {"mode": "fixed", "fixedColor": "#CCCCDC"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "처리량 (건/s)", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 8, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Call 접수"}, "properties": [{"id": "color", "value": {"fixedColor": "#E7C84A", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}, {"id": "custom.fillOpacity", "value": 6}]},
+          {"matcher": {"id": "byName", "options": "SQS Publish"}, "properties": [{"id": "color", "value": {"fixedColor": "#66C7D8", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}, {"id": "custom.lineStyle", "value": {"dash": [10, 10], "fill": "dash"}}, {"id": "custom.fillOpacity", "value": 0}]}
+        ]
       },
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}}
     },
     {
-      "id": 11,
-      "title": "OpenCost 비용 모델",
+      "id": 30,
+      "title": "안정성 / 런타임",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17},
       "panels": []
     },
     {
-      "id": 28,
-      "title": "OpenCost 할당 모델 비용 ($/h)",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "OpenCost가 Kubernetes 리소스 기준으로 계산한 Worker와 hailcast 네임스페이스의 CPU/RAM 할당 모델 비용을 비교한다. CUR 또는 Cost Explorer를 사용한 AWS 실제 청구 비용이 아니며 RDS, ALB, SQS, S3, EKS Control Plane 비용은 포함하지 않는다. AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있으며 확정 절감액과도 다를 수 있다.",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 20
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  container_cpu_allocation{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    container=\"worker\"\n  }\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
-          "legendFormat": "Worker 할당 모델 비용",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  container_cpu_allocation{namespace=\"$namespace\"}\n  * on(node) group_left()\n  node_cpu_hourly_cost\n)\n+\nsum(\n  (\n    container_memory_allocation_bytes{namespace=\"$namespace\"}\n    / 1024 / 1024 / 1024\n  )\n  * on(node) group_left()\n  node_ram_hourly_cost\n)",
-          "legendFormat": "Hailcast 네임스페이스 할당 모델 비용",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 3,
-          "mappings": [],
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
+      "id": 36,
+      "title": "Pending Worker",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Pending 상태인 Worker 파드 수를 표시합니다. 1 이상이면 스케줄링 또는 노드 공급 지연 가능성을 확인해야 합니다.",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 18},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(\n  kube_pod_status_phase{\n    namespace=\"$namespace\",\n    pod=~\"${worker_deployment}-.*\",\n    phase=\"Pending\"\n  }\n)", "legendFormat": "Pending Worker", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     },
     {
-      "id": 29,
-      "title": "전체 / Spot 노드 모델 비용 ($/h)",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "OpenCost가 Kubernetes 노드 기준으로 계산한 전체 노드와 Spot 노드의 시간당 모델 비용을 비교한다. CUR 또는 Cost Explorer를 사용한 AWS 실제 청구 비용이 아니며 RDS, ALB, SQS, S3, EKS Control Plane 비용은 포함하지 않는다. Spot 계열은 확정 절감액이 아니라 Spot 노드에 귀속된 모델 비용이며, AWS Spot 가격 조회 실패 시 On-Demand 가격이 사용될 수 있다.",
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 20
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(node_total_hourly_cost)",
-          "legendFormat": "전체 노드 모델 비용",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  node_total_hourly_cost\n  * on(node)\n  kubecost_node_is_spot\n)",
-          "legendFormat": "Spot 노드 모델 비용",
-          "refId": "B"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 3,
-          "mappings": [],
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 8,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
+      "id": 37,
+      "title": "Worker 재시작 증가량 (5분)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "최근 5분 Worker 컨테이너 restart counter 증가량을 표시합니다. rollout/restart 과정에서도 증가할 수 있으므로 이 값만으로 즉시 장애를 의미하지 않습니다.",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 18},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(\n  increase(\n    kube_pod_container_status_restarts_total{\n      namespace=\"$namespace\",\n      pod=~\"${worker_deployment}-.*\",\n      container=\"worker\"\n    }[5m]\n  )\n)", "legendFormat": "재시작", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}]}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
+    },
+    {
+      "id": 38,
+      "title": "Not Ready Node",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Ready condition이 false 또는 unknown인 노드 수를 표시합니다. 1 이상이면 노드 상태를 확인해야 합니다.",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 18},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(\n  kube_node_status_condition{\n    condition=\"Ready\",\n    status=~\"false|unknown\"\n  }\n)", "legendFormat": "Not Ready Node", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
+    },
+    {
+      "id": 2,
+      "title": "Predict 메트릭 수집",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Prometheus가 Predict 서비스의 메트릭 수집 대상을 scrape할 수 있는지 표시합니다. Prediction 생성 여부, freshness 또는 coverage와는 별개의 Runtime 신호입니다.",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 18},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)", "legendFormat": "Predict 메트릭 수집", "refId": "A", "instant": true, "range": false}],
+      "fieldConfig": {"defaults": {"unit": "short", "mappings": [{"type": "value", "options": {"0": {"color": "red", "index": 0, "text": "수집 불가"}, "1": {"color": "green", "index": 1, "text": "수집 가능"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value", "wideLayout": true}
     }
   ],
   "refresh": "30s",
   "schemaVersion": 41,
-  "tags": [
-    "hailcast",
-    "scaling-baseline",
-    "runtime-verification",
-    "allocation-estimate"
-  ],
+  "tags": ["hailcast", "closed-loop", "executive", "observability"],
   "templating": {
     "list": [
-      {
-        "name": "datasource",
-        "label": "데이터 소스",
-        "type": "datasource",
-        "query": "prometheus",
-        "refresh": 1
-      },
-      {
-        "name": "namespace",
-        "label": "네임스페이스",
-        "type": "constant",
-        "query": "hailcast",
-        "current": {
-          "text": "hailcast",
-          "value": "hailcast"
-        },
-        "hide": 0
-      },
-      {
-        "name": "worker_deployment",
-        "label": "Worker 디플로이먼트",
-        "type": "constant",
-        "query": "hailcast-worker",
-        "current": {
-          "text": "hailcast-worker",
-          "value": "hailcast-worker"
-        },
-        "hide": 0
-      },
-      {
-        "name": "predict_service",
-        "label": "Predict 서비스",
-        "type": "constant",
-        "query": "predict",
-        "current": {
-          "text": "predict",
-          "value": "predict"
-        },
-        "hide": 0
-      }
+      {"name": "datasource", "label": "데이터 소스", "type": "datasource", "query": "prometheus", "refresh": 1},
+      {"name": "namespace", "label": "네임스페이스", "type": "constant", "query": "hailcast", "current": {"text": "hailcast", "value": "hailcast"}, "hide": 0},
+      {"name": "worker_deployment", "label": "Worker 디플로이먼트", "type": "constant", "query": "hailcast-worker", "current": {"text": "hailcast-worker", "value": "hailcast-worker"}, "hide": 0},
+      {"name": "predict_service", "label": "Predict 서비스", "type": "constant", "query": "predict", "current": {"text": "predict", "value": "predict"}, "hide": 0}
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
+  "time": {"from": "now-1h", "to": "now"},
   "timepicker": {},
   "timezone": "browser",
   "title": "99 Hailcast 운영 요약",
   "uid": "hailcast-99-closed-loop",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
