@@ -34,7 +34,7 @@ spec:
               cpu: "250m"
               memory: "512Mi"
             limits:
-              memory: "1Gi"
+              memory: "512Mi"
           # 하트비트 파일 최신성으로 실제 폴링 동작 여부를 판단한다(app PR#49,
           # 2026-08-18 반영). poll_once() 성공마다 갱신되고, SQS 접근 자체가
           # AwsError로 실패하는 경로에서는 안 찍는다 — pgrep(프로세스 생존만
