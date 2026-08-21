@@ -45,6 +45,20 @@ grafana:
         timeoutInSeconds: 5
         allowDangerousHTTPMethods: false
 
+    - name: Hailcast OpenCost API
+      uid: hailcast-opencost-api
+      type: yesoreyeram-infinity-datasource
+      access: proxy
+      url: http://opencost.opencost.svc.cluster.local:9003
+      isDefault: false
+      editable: false
+      jsonData:
+        auth_method: none
+        allowedHosts:
+          - http://opencost.opencost.svc.cluster.local:9003
+        timeoutInSeconds: 30
+        allowDangerousHTTPMethods: false
+
   alerting:
     hailcast-predict-api-rules.yaml:
       apiVersion: 1
@@ -518,7 +532,7 @@ alertmanager:
             - 'alertname = "InfoInhibitor"'
         - receiver: telegram
           matchers:
-            - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
+            - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|NodeFilesystemAlmostOutOfSpace|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
         - receiver: telegram
           matchers:
             - 'alertname = "KubePersistentVolumeFillingUp"'
