@@ -207,14 +207,14 @@
       "title": "Predictive Scaling Scheduler 진단",
       "type": "table",
       "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
-      "description": "Predictive Scaling Scheduler의 실행 상태, 최근 실행 시각과 최근 Scaling 계산 결과를 표시합니다. 실행 시각은 Dashboard timezone에 맞춰 표시하며, Prediction Alert 판정이나 fallback/stalled 상태를 의미하지 않습니다.",
+      "description": "Predictive Scaling Scheduler의 실행 상태, 최근 실행 시각과 판단을 표시합니다. 실행 시각은 Dashboard timezone 기준이며 Prediction Alert나 fallback/stalled 상태를 의미하지 않습니다. util은 CPU 사용률이 아니라 최근 1시간 실측 수요를 설정 용량(현재 replica × 500)으로 나눈 비율이므로 100%를 초과할 수 있습니다. reactive-hold는 reactive scale-up 이후 util이 하한 40% 이하가 될 때까지 replica를 유지하는 상태입니다.",
       "gridPos": {"h": 6, "w": 24, "x": 0, "y": 32},
       "targets": [
         {
           "columns": [
             {"selector": "scheduler_running", "text": "Scheduler", "type": "string"},
             {"selector": "last_run_at", "text": "최근 실행", "type": "timestamp"},
-            {"selector": "last_decision", "text": "최근 Scaling 계산 결과", "type": "string"},
+            {"selector": "last_decision", "text": "최근 스케일링 판단", "type": "string"},
             {"selector": "last_error", "text": "최근 오류", "type": "string"}
           ],
           "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
@@ -234,7 +234,7 @@
         "overrides": [
           {"matcher": {"id": "byName", "options": "Scheduler"}, "properties": [{"id": "custom.width", "value": 110}, {"id": "mappings", "value": [{"type": "value", "options": {"실행 중": {"color": "green", "index": 0, "text": "실행 중"}, "중지": {"color": "red", "index": 1, "text": "중지"}}}]}, {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
           {"matcher": {"id": "byName", "options": "최근 실행"}, "properties": [{"id": "custom.width", "value": 210}]},
-          {"matcher": {"id": "byName", "options": "최근 Scaling 계산 결과"}, "properties": [{"id": "custom.width", "value": 500}]}
+          {"matcher": {"id": "byName", "options": "최근 스케일링 판단"}, "properties": [{"id": "custom.width", "value": 500}]}
         ]
       },
       "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true}
