@@ -89,14 +89,26 @@ info "③ rds-secret 강제 동기화"
 # ESO 컨트롤러가 막 뜬 직후에는 ClusterSecretStore 검증이 아직 안 끝나
 # 첫 reconcile 이 실패할 수 있다. refreshInterval 이 1h 라 자동 재시도가
 # 최대 한 시간 뒤다 — force-sync 로 즉시 다시 돌린다 (ops 8-3-1).
-info "③ ExternalSecret 생성 대기"
-for _ in $(seq 1 30); do
+# 8/25 는 빈 클러스터라 ArgoCD 가 wave 순서대로 sync 하는 시간이 더 걸린다.
+# 기존 클러스터 재실행으로는 이 구간이 검증되지 않아 300초로 잡았다(팀장 지적).
+info "③ ExternalSecret 생성 대기 (최대 300초)"
+for _ in $(seq 1 60); do
   if kubectl -n "$APP_NAMESPACE" get externalsecret rds-credentials >/dev/null 2>&1 \
   && kubectl -n "$APP_NAMESPACE" get externalsecret rds-endpoint >/dev/null 2>&1; then
     break
   fi
   sleep 5
 done
+
+if ! kubectl -n "$APP_NAMESPACE" get externalsecret rds-credentials >/dev/null 2>&1; then
+  err "③ ExternalSecret 이 300초 안에 안 생겼습니다."
+  err "   ①② 는 끝났으니 처음부터 다시 할 필요는 없습니다."
+  err "   platform-secrets 가 Synced 된 뒤 아래만 실행하세요:"
+  err "     kubectl -n $APP_NAMESPACE annotate externalsecret rds-credentials force-sync=\$(date +%s) --overwrite"
+  err "     kubectl -n $APP_NAMESPACE annotate externalsecret rds-endpoint    force-sync=\$(date +%s) --overwrite"
+  err "   진행 상황: kubectl -n argocd get application platform-secrets"
+  exit 1
+fi
 
 TS="$(date +%s)"
 for ES in rds-credentials rds-endpoint; do
@@ -114,6 +126,7 @@ else
   err "③ hailcast-rds-secret 키 부족(현재: ${KEYS:-<없음>}) — 아직 sync 중일 수 있습니다."
   err "   잠시 후 확인: kubectl -n $APP_NAMESPACE get secret hailcast-rds-secret -o jsonpath='{.data}' | jq 'keys'"
   err "   그래도 비면 force-sync 재실행 (ops 8-3-1)"
+  exit 1
 fi
 
 info "완료. 다음 단계는 재구축 런북 8-2 의 4번(배포팀 5줄 반영)입니다."
