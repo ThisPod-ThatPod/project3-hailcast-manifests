@@ -34,6 +34,12 @@ opencost:
   exporter:
     defaultClusterId: hailcast-dev-eks
 
+  # cloudIntegrationJSON 만 넣으면 설정은 들어가는데 수집이 안 돈다 —
+  # 차트 2.5.27 기본값이 enabled: false 다(지윤님 지적).
+  # 에러도 안 나고 파드도 Running 이라 8/24 대시보드에서야 발견될 뻔했다.
+  cloudCost:
+    enabled: true
+
   metrics:
     kubeStateMetrics:
       emitKsmV1Metrics: false
