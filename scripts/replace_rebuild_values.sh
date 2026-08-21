@@ -83,6 +83,10 @@ JOBS = [
     ("apps/call-api/deployment.yaml",    r"model-artifacts-[0-9a-f]{8}", f"model-artifacts-{model}", 1),
     ("apps/simulator/deployment.yaml",   r"model-artifacts-[0-9a-f]{8}", f"model-artifacts-{model}", 1),
     ("apps/weather-cron/deployment.yaml",r"model-artifacts-[0-9a-f]{8}", f"model-artifacts-{model}", 1),
+    # retraining CronJob(manifests #85, 2026-08-21 신설)도 같은 모델 버킷을 쓴다.
+    # build.yml 글롭이 파일명 고정이라 새 파일을 놓쳤던 것(app #59)과 같은 유형이라
+    # 여기서도 새 파일이 생길 때마다 놓치지 않도록 지윤님이 리뷰에서 짚어주셨다.
+    ("apps/predict/retraining-cronjob.yaml", r"model-artifacts-[0-9a-f]{8}", f"model-artifacts-{model}", 1),
     ("addons/aws-load-balancer-controller/values.yaml", r"vpc-[0-9a-f]{17}", vpc, 1),
     ("platform/external-secrets/externalsecret-rds-credentials.yaml",
      r"rds!db-[0-9a-f-]{36}-[A-Za-z0-9]{6}", f"rds!db-{rds}", 2),
@@ -147,16 +151,33 @@ if [[ -n "$LEFT" ]]; then
 fi
 info "옛 값 잔존 0건"
 
-# ── 5. YAML 문법 ──
+# ── 5. YAML 문법 — 우리가 건드린 파일만 검사한다(레포 전체 아님).
+# 레포 전체를 훑으면 무관한 기존 파일(kube-prometheus-stack/values.yaml
+# 안 이모지 문자)에서 PyYAML이 오탐을 내고, 치환은 성공했는데 스크립트가
+# 실패로 보고한다. 8/25 촬영 중 이 오판이 제일 위험하다.
+TOUCHED_FILES=(
+  "apps/predict/ingress.yaml"
+  "apps/call-api/ingress.yaml"
+  "apps/frontend/ingress.yaml"
+  "apps/predict/deployment.yaml"
+  "apps/call-api/deployment.yaml"
+  "apps/simulator/deployment.yaml"
+  "apps/weather-cron/deployment.yaml"
+  "apps/predict/retraining-cronjob.yaml"
+  "addons/aws-load-balancer-controller/values.yaml"
+  "platform/external-secrets/externalsecret-rds-credentials.yaml"
+  "addons/opencost/values.yaml"
+)
 python3 -c "
-import glob, yaml, sys
+import yaml, sys
+files = sys.argv[1:]
 bad=[]
-for f in sorted(glob.glob('**/*.yaml', recursive=True)):
+for f in files:
     try: list(yaml.safe_load_all(open(f)))
     except Exception as e: bad.append(f)
 if bad: sys.exit('[ERROR] YAML 파싱 실패: ' + ', '.join(bad))
-print('[replace] YAML 문법 통과')
-"
+print(f'[replace] YAML 문법 통과 ({len(files)}개 파일, 치환 대상만 검사)')
+" "${TOUCHED_FILES[@]}"
 
 info "완료. git diff 로 확인 후 커밋하세요."
 info "  git diff --stat"
