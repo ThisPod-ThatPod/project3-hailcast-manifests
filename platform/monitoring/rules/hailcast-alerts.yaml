@@ -116,6 +116,27 @@ spec:
             impact: 메모리 제한 도달 시 OOMKilled와 컨테이너 재시작이 발생할 수 있습니다.
             action: Memory 사용 추이 · Limit · OOMKilled 여부
 
+        - alert: HailcastNodePressure
+          expr: |
+            kube_node_status_condition{
+              job="kube-state-metrics",
+              condition=~"(MemoryPressure|DiskPressure|PIDPressure)",
+              status="true"
+            } == 1
+            and on (cluster, node)
+            kube_node_spec_unschedulable{
+              job="kube-state-metrics"
+            } == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: platform
+          annotations:
+            summary: Hailcast 클러스터 노드에 리소스 압력이 발생했습니다.
+            description: 노드 {{ $labels.node }}에서 {{ $labels.condition }} 상태가 10분 이상 지속되고 있습니다.
+            impact: 리소스 eviction 임계치 초과로 워크로드가 축출되거나 스케줄링 및 처리 용량에 영향을 받을 수 있습니다.
+            action: Node condition · Memory/Disk/PID 사용량 · Pod eviction 상태
+
         - alert: HailcastPrometheusTargetDown
           expr: up{namespace="hailcast"} == 0
           for: 5m
@@ -139,6 +160,18 @@ spec:
             description: Prometheus가 10분 이상 서비스(Service) hailcast/predict의 수집 대상을 발견하지 못했습니다.
             impact: Predict Runtime 메트릭과 이를 사용하는 관측 화면에 데이터 공백이 생깁니다.
             action: ServiceMonitor · Service · Endpoint · selector
+
+        - alert: HailcastCallApiTargetMissing
+          expr: absent(up{namespace="hailcast", service="hailcast-call-api"})
+          for: 10m
+          labels:
+            severity: critical
+            component: platform
+          annotations:
+            summary: Hailcast Call API 메트릭 수집 대상이 발견되지 않았습니다.
+            description: Prometheus가 10분 이상 서비스(Service) hailcast/hailcast-call-api의 수집 대상을 발견하지 못했습니다. 발견된 대상의 scrape 실패를 감지하는 TargetDown과 달리, 이 Alert는 target 시계열 자체가 없는 상태를 감지합니다.
+            impact: Call 접수 및 SQS Publish 처리량 메트릭이 수집되지 않아 Dashboard와 Alert 판단에 데이터 공백이 생길 수 있습니다.
+            action: Call API ServiceMonitor · Service · Endpoint · selector
 
         - alert: HailcastQueueBacklogHigh
           expr: |

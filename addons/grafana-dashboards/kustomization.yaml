@@ -16,4 +16,5 @@ configMapGenerator:
       - 01-predict-scaling.json
       - 02-queue-keda.json
       - 03-worker-kubernetes.json
+      - 04-cost-finops.json
       - 99-closed-loop-executive.json
