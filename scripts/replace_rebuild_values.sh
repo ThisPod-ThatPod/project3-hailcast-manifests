@@ -90,20 +90,44 @@ JOBS = [
     ("addons/opencost/values.yaml", r"hailcast-dev-cur-[0-9a-f]{8}", f"hailcast-dev-cur-{cur}", None),
 ]
 
-total = 0
+# ── 1차: 전체 검증만 한다 (아무것도 쓰지 않는다) ──
+# 대상별로 "검증 → 즉시 쓰기"를 반복하면 뒤쪽에서 실패했을 때 앞쪽만
+# 치환된 상태가 남는다. 8/25 촬영 중에 이러면 "일부는 새 값, 일부는
+# 옛 값"인 어중간한 상태로 원인 찾기가 어려워진다(지윤님 지적).
+plan = []
+errors = []
 for path, pat, new, expect in JOBS:
+    optional = (expect is None)
     try:
         s = io.open(path, encoding="utf-8").read()
     except FileNotFoundError:
-        print(f"  SKIP {path} (파일 없음)")
+        # 의도적으로 없을 수 있는 대상(PR#82 미머지)만 건너뛴다.
+        # 필수 대상이 없으면 실패다 — 조용히 넘어가면 안 된다.
+        if optional:
+            print(f"  SKIP {path} (파일 없음 · optional)")
+        else:
+            errors.append(f"{path}: 파일이 없습니다(필수 대상)")
         continue
     n = len(re.findall(pat, s))
-    if expect is None:
+    if optional:
         if n == 0:
             print(f"  SKIP {path} (대상 0건 — PR#82 미머지로 보임)")
             continue
     elif n != expect:
-        sys.exit(f"[ERROR] {path}: {pat} 를 {n}건 찾음(기대 {expect}) — 중단")
+        errors.append(f"{path}: {pat} 를 {n}건 찾음(기대 {expect})")
+        continue
+    plan.append((path, pat, new, n))
+
+if errors:
+    print("\n[ERROR] 검증 실패 — 아무 파일도 수정하지 않았습니다:")
+    for e in errors:
+        print("  -", e)
+    sys.exit(1)
+
+# ── 2차: 전부 통과했으니 실제로 쓴다 ──
+total = 0
+for path, pat, new, n in plan:
+    s = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write(re.sub(pat, new, s))
     print(f"  OK   {path}  ({n}건)")
     total += n
