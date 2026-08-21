@@ -37,6 +37,9 @@ validate: ## 클러스터 없이 manifests 정적 검증
 install-argocd: ## Argo CD 최초 설치(Helm) + app-of-apps 등록 (부트스트랩, 멱등)
 	@bash scripts/install_argocd.sh
 
+bootstrap-all: ## apply 직후 부트스트랩 3단계 일괄 (ArgoCD + ESO CRD + rds-secret, 멱등)
+	bash scripts/bootstrap_all.sh
+
 deploy-dry-run: validate ## root Application server-side dry-run (클러스터 변경 없음)
 	@echo "[deploy-dry-run] Argo CD root Application을 server-side dry-run으로 검증합니다."
 	@kubectl apply --dry-run=server -f argocd/app-of-apps.yaml

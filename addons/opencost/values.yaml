@@ -10,8 +10,35 @@ opencost:
   mcp:
     enabled: false
 
+  # CUR → Athena 실청구 연동 (infra #83·#85·#86, 미선님 전달값 2026-08-20).
+  # cloudIntegrationSecret 대신 JSON 직접 지정 — 여기 값은 전부 공개 가능한
+  # 식별자이고, 실제 권한은 위 serviceAccount 의 IRSA 가 담당한다.
+  # 그래서 serviceKeyName/serviceKeySecret(액세스 키)은 넣지 않는다.
+  #   ⚠️ athenaDatabase 와 athenaTable 이 같은 값인 것은 오타가 아니다.
+  #      크롤러가 S3 prefix 이름을 따서 테이블을 만들어 둘 다 hailcast_dev_cur 다.
+  #   ⚠️ athenaBucketName 은 CUR 원본 버킷이 아니라 "쿼리 결과 저장 위치"다.
+  cloudIntegrationJSON: |-
+    {
+      "aws": [
+        {
+          "athenaBucketName": "s3://hailcast-dev-cur-15c95bad/athena-results/",
+          "athenaRegion": "ap-northeast-2",
+          "athenaDatabase": "hailcast_dev_cur",
+          "athenaTable": "hailcast_dev_cur",
+          "athenaWorkgroup": "hailcast-dev-opencost",
+          "projectID": "797452357900"
+        }
+      ]
+    }
+
   exporter:
     defaultClusterId: hailcast-dev-eks
+
+  # cloudIntegrationJSON 만 넣으면 설정은 들어가는데 수집이 안 돈다 —
+  # 차트 2.5.27 기본값이 enabled: false 다(지윤님 지적).
+  # 에러도 안 나고 파드도 Running 이라 8/24 대시보드에서야 발견될 뻔했다.
+  cloudCost:
+    enabled: true
 
   metrics:
     kubeStateMetrics:
