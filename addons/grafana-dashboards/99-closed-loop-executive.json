@@ -71,7 +71,7 @@
     },
     {
       "id": 33,
-      "title": "Worker Replica Fulfillment",
+      "title": "Worker 복제본 충족률",
       "type": "gauge",
       "datasource": {"type": "prometheus", "uid": "${datasource}"},
       "description": "HPA가 요구한 Worker 복제본 수 대비 실제 Ready 복제본의 비율입니다. 100%는 요구된 복제본이 모두 준비된 상태를 의미하며, 확장 직후에는 일시적으로 낮아질 수 있습니다.",
@@ -218,7 +218,7 @@
       {"name": "predict_service", "label": "Predict 서비스", "type": "constant", "query": "predict", "current": {"text": "predict", "value": "predict"}, "hide": 0}
     ]
   },
-  "time": {"from": "now-1h", "to": "now"},
+  "time": {"from": "now-24h", "to": "now"},
   "timepicker": {},
   "timezone": "browser",
   "title": "99 Hailcast 운영 요약",

@@ -532,6 +532,11 @@ alertmanager:
             - 'alertname = "InfoInhibitor"'
         - receiver: telegram
           matchers:
+            - 'alertname = "KubeJobFailed"'
+            - 'namespace = "hailcast"'
+            - 'job_name =~ "predict-retraining-.*"'
+        - receiver: telegram
+          matchers:
             - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|NodeFilesystemAlmostOutOfSpace|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
         - receiver: telegram
           matchers:

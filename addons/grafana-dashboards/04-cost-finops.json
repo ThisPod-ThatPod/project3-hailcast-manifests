@@ -16,14 +16,14 @@
     },
     {
       "id": 4,
-      "title": "최근 반영 AWS 비용",
+      "title": "최근 집계된 AWS 일일 비용",
       "type": "stat",
       "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-opencost-api"},
-      "description": "OpenCost /cloudCost 최근 7일 응답에서 데이터가 존재하는 최신 완료 일 구간의 CUR 기반 Net Cost 합계입니다. CUR 반영 지연이 있어 실시간 비용이 아닙니다.",
+      "description": "OpenCost /cloudCost 최근 7일 응답 중 비용 데이터가 존재하는 가장 최근 1일 구간의 CUR 기반 Net Cost 합계입니다. CUR 반영 지연이 있어 실시간 비용이 아닙니다.",
       "gridPos": {"h": 4, "w": 24, "x": 0, "y": 1},
       "targets": [
         {
-          "columns": [{"selector": "cost", "text": "최신 완료 일 Net Cost", "type": "number"}],
+          "columns": [{"selector": "cost", "text": "최근 집계 일 Net Cost", "type": "number"}],
           "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-opencost-api"},
           "filters": [],
           "format": "table",
@@ -61,7 +61,7 @@
       "title": "일별 AWS 비용 추세",
       "type": "timeseries",
       "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-opencost-api"},
-      "description": "OpenCost /cloudCost 최근 7일의 완료된 일별 구간을 CUR 기반 Net Cost 합계로 표시합니다. 아직 비용 데이터가 없는 현재 일 구간은 제외합니다.",
+      "description": "OpenCost /cloudCost 최근 7일 중 비용 데이터가 존재하는 일별 구간을 CUR 기반 Net Cost 합계로 표시합니다. 아직 비용 데이터가 없는 현재 일 구간은 제외합니다.",
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
       "targets": [
         {
@@ -132,7 +132,7 @@
           "format": "table",
           "parser": "jq-backend",
           "refId": "A",
-          "root_selector": "[.data.sets[].cloudCosts[]?] | group_by(.properties.service // \"Unknown\") | map({service: (.[0].properties.service // \"Unknown\"), cost: (map(.netCost.cost // 0) | add)}) | sort_by(.cost) | reverse",
+          "root_selector": "[.data.sets[].cloudCosts[]?] | group_by(.properties.service // \"Unknown\") | map({service: (.[0].properties.service // \"Unknown\"), cost: (map(.netCost.cost // 0) | add)}) | map(select(.cost > 0)) | sort_by(.cost) | reverse",
           "source": "url",
           "type": "json",
           "url": "/cloudCost?window=7d",
@@ -165,7 +165,7 @@
     },
     {
       "id": 8,
-      "title": "AWS 비용 Category 구성",
+      "title": "AWS 비용 카테고리 구성",
       "type": "piechart",
       "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-opencost-api"},
       "description": "OpenCost /cloudCost 최근 7일 비용을 properties.category별로 합산한 CUR 기반 Net Cost 구성입니다.",
@@ -201,11 +201,17 @@
       ],
       "fieldConfig": {
         "defaults": {"unit": "currencyUSD", "decimals": 2, "mappings": [], "color": {"mode": "palette-classic"}},
-        "overrides": []
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Compute"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#5794F2"}}]},
+          {"matcher": {"id": "byName", "options": "Storage"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#73BF69"}}]},
+          {"matcher": {"id": "byName", "options": "Management"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#B877D9"}}]},
+          {"matcher": {"id": "byName", "options": "Network"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#FF9830"}}]},
+          {"matcher": {"id": "byName", "options": "Other"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#F2CC0C"}}]}
+        ]
       },
       "options": {
         "displayLabels": ["name", "percent"],
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true, "values": ["value", "percent"]},
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": false, "values": []},
         "pieType": "donut",
         "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true},
         "tooltip": {"hideZeros": false, "mode": "single", "sort": "none"}
