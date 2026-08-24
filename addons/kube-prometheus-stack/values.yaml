@@ -1,6 +1,12 @@
 crds:
   enabled: true
 
+defaultRules:
+  additionalRuleAnnotations:
+    KubeJobFailed:
+      summary: Kubernetes Job이 정상적으로 완료되지 않았습니다.
+      description: Job {{ $labels.namespace }}/{{ $labels.job_name }}의 실행 실패가 감지되었습니다. 원인을 확인한 후 실패한 Job을 정리하면 이 Alert가 해제됩니다.
+
 # EKS가 관리하며 클러스터 내부에서 직접 수집할 endpoint가 없는 구성요소.
 kubeControllerManager:
   enabled: false
@@ -60,6 +66,27 @@ grafana:
         allowDangerousHTTPMethods: false
 
   alerting:
+    hailcast-alertmanager-notifications.yaml:
+      apiVersion: 1
+      contactPoints:
+        - orgId: 1
+          name: Hailcast Alertmanager
+          receivers:
+            - uid: hailcast-alertmanager
+              type: prometheus-alertmanager
+              disableResolveMessage: false
+              settings:
+                url: http://kube-prometheus-stack-alertmanager.monitoring:9093
+      policies:
+        - orgId: 1
+          receiver: Hailcast Alertmanager
+          group_by:
+            - grafana_folder
+            - alertname
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+
     hailcast-predict-api-rules.yaml:
       apiVersion: 1
       groups:
@@ -397,27 +424,40 @@ grafana:
         foldersFromFilesStructure: true
     datasources:
       alertmanager:
-        handleGrafanaManagedAlerts: true
+        handleGrafanaManagedAlerts: false
 
 alertmanager:
   enabled: true
   templateFiles:
     telegram-hailcast.tmpl: |-
       {{ define "telegram.hailcast.target" -}}
-      {{- if and .Labels.pod .Labels.container -}}
-      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }} / {{ printf "%.120s" .Labels.container | html }}
-      {{- else if .Labels.pod -}}
-      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }}
+      {{- if .Labels.job_name -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.job_name | html }}
       {{- else if .Labels.deployment -}}
       {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.deployment | html }}
       {{- else if .Labels.horizontalpodautoscaler -}}
       {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}HPA {{ printf "%.120s" .Labels.horizontalpodautoscaler | html }}
+      {{- else if .Labels.persistentvolumeclaim -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}PVC {{ printf "%.120s" .Labels.persistentvolumeclaim | html }}
+      {{- else if or .Labels.mountpoint .Labels.device -}}
+      {{- $host := or .Labels.node .Labels.instance -}}
+      {{- if $host }}{{ printf "%.160s" $host | html }}{{ if or .Labels.mountpoint .Labels.device }} / {{ end }}{{ end -}}
+      {{- if .Labels.mountpoint }}mountpoint={{ printf "%.160s" .Labels.mountpoint | html }}{{ if .Labels.device }} / {{ end }}{{ end -}}
+      {{- if .Labels.device }}device={{ printf "%.160s" .Labels.device | html }}{{ end -}}
+      {{- else if or .Labels.controller .Labels.resource -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }}{{ if or .Labels.controller .Labels.resource }} / {{ end }}{{ end -}}
+      {{- if .Labels.controller }}{{ printf "%.120s" .Labels.controller | html }}{{ if .Labels.resource }} / {{ end }}{{ end -}}
+      {{- if .Labels.resource }}{{ printf "%.120s" .Labels.resource | html }}{{ end -}}
+      {{- else if .Labels.node -}}
+      {{ printf "%.160s" .Labels.node | html }}
+      {{- else if and .Labels.pod .Labels.container -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }} / {{ printf "%.120s" .Labels.container | html }}
+      {{- else if .Labels.pod -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }}
       {{- else if .Labels.service -}}
       {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.service | html }}
       {{- else if and .Labels.job .Labels.instance -}}
       {{ printf "%.120s" .Labels.job | html }} / {{ printf "%.160s" .Labels.instance | html }}
-      {{- else if .Labels.node -}}
-      {{ printf "%.160s" .Labels.node | html }}
       {{- else if .Labels.instance -}}
       {{ printf "%.160s" .Labels.instance | html }}
       {{- else if eq .Labels.component "predict" -}}
@@ -440,7 +480,7 @@ alertmanager:
       {{- end }}
 
       심각도: <b>{{ if eq $alert.Labels.severity "critical" }}CRITICAL{{ else if eq $alert.Labels.severity "warning" }}WARNING{{ else }}{{ printf "%.20s" $alert.Labels.severity | html }}{{ end }}</b>
-      {{- if or $alert.Labels.pod $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.service $alert.Labels.job $alert.Labels.node $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
+      {{- if or $alert.Labels.job_name $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.persistentvolumeclaim $alert.Labels.mountpoint $alert.Labels.device $alert.Labels.node $alert.Labels.controller $alert.Labels.resource $alert.Labels.pod $alert.Labels.service $alert.Labels.job $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
 
       <b>대상</b>
       {{ template "telegram.hailcast.target" $alert }}
@@ -470,7 +510,7 @@ alertmanager:
       {{ $alert.StartsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05 MST" }}
       {{- else }}
       <b>✅ 복구 | {{ printf "%.100s" $alert.Labels.alertname | html }}</b>
-      {{- if or $alert.Labels.pod $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.service $alert.Labels.job $alert.Labels.node $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
+      {{- if or $alert.Labels.job_name $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.persistentvolumeclaim $alert.Labels.mountpoint $alert.Labels.device $alert.Labels.node $alert.Labels.controller $alert.Labels.resource $alert.Labels.pod $alert.Labels.service $alert.Labels.job $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
 
       <b>대상</b>
       {{ template "telegram.hailcast.target" $alert }}
