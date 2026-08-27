@@ -24,7 +24,7 @@ spec:
         runAsGroup: 10001
       containers:
         - name: simulator
-          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:1f9eced
+          image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-simulator:eeb8043
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -40,7 +40,7 @@ spec:
             - name: JSON_STORE_BACKEND
               value: "s3"
             - name: S3_BUCKET
-              value: "hailcast-dev-model-artifacts-fbd3700f"
+              value: "hailcast-dev-model-artifacts-58b4f8fd"
             - name: CALL_API_URL
               value: "http://hailcast-call-api:8000"
           resources:
@@ -48,8 +48,7 @@ spec:
               cpu: "3000m"
               memory: "512Mi"
             limits:
-              cpu: "6000m"
-              memory: "1280Mi"
+              memory: "512Mi"
           livenessProbe:
             httpGet:
               path: /healthz

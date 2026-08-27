@@ -1,6 +1,12 @@
 crds:
   enabled: true
 
+defaultRules:
+  additionalRuleAnnotations:
+    KubeJobFailed:
+      summary: Kubernetes Job이 정상적으로 완료되지 않았습니다.
+      description: Job {{ $labels.namespace }}/{{ $labels.job_name }}의 실행 실패가 감지되었습니다. 원인을 확인한 후 실패한 Job을 정리하면 이 Alert가 해제됩니다.
+
 # EKS가 관리하며 클러스터 내부에서 직접 수집할 endpoint가 없는 구성요소.
 kubeControllerManager:
   enabled: false
@@ -27,6 +33,385 @@ grafana:
   persistence:
     enabled: false
 
+  plugins:
+    - yesoreyeram-infinity-datasource@3.11.1
+
+  additionalDataSources:
+    - name: Hailcast Predict API
+      uid: hailcast-predict-api
+      type: yesoreyeram-infinity-datasource
+      access: proxy
+      url: http://predict.hailcast.svc.cluster.local:8003
+      isDefault: false
+      editable: false
+      jsonData:
+        auth_method: none
+        allowedHosts:
+          - http://predict.hailcast.svc.cluster.local:8003
+        timeoutInSeconds: 5
+        allowDangerousHTTPMethods: false
+
+    - name: Hailcast OpenCost API
+      uid: hailcast-opencost-api
+      type: yesoreyeram-infinity-datasource
+      access: proxy
+      url: http://opencost.opencost.svc.cluster.local:9003
+      isDefault: false
+      editable: false
+      jsonData:
+        auth_method: none
+        allowedHosts:
+          - http://opencost.opencost.svc.cluster.local:9003
+        timeoutInSeconds: 30
+        allowDangerousHTTPMethods: false
+
+  alerting:
+    hailcast-alertmanager-notifications.yaml:
+      apiVersion: 1
+      contactPoints:
+        - orgId: 1
+          name: Hailcast Alertmanager
+          receivers:
+            - uid: hailcast-alertmanager
+              type: prometheus-alertmanager
+              disableResolveMessage: false
+              settings:
+                url: http://kube-prometheus-stack-alertmanager.monitoring:9093
+      policies:
+        - orgId: 1
+          receiver: Hailcast Alertmanager
+          group_by:
+            - grafana_folder
+            - alertname
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+
+    hailcast-predict-api-rules.yaml:
+      apiVersion: 1
+      groups:
+        - orgId: 1
+          name: Hailcast Predict API
+          folder: Hailcast
+          interval: 10s
+          rules:
+            - uid: hailcast-prediction-unavailable
+              title: HailcastPredictionUnavailable
+              condition: C
+              data:
+                - refId: A
+                  datasourceUid: hailcast-predict-api
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  model:
+                    columns:
+                      - selector: unavailable
+                        text: unavailable
+                        type: number
+                    datasource:
+                      type: yesoreyeram-infinity-datasource
+                      uid: hailcast-predict-api
+                    filters: []
+                    format: table
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    parser: jq-backend
+                    refId: A
+                    root_selector: '[{unavailable: (if (.scheduler_running == false or .last_error != null or .latest_generated_at == null or ((now * 1000) - ((.latest_generated_at | sub("\\.[0-9]+Z$";"Z") | fromdateiso8601) * 1000)) > 18000000) then 1 else 0 end)}]'
+                    source: url
+                    type: json
+                    url: /api/prediction/status
+                    url_options:
+                      data: ""
+                      method: GET
+                - refId: B
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: []
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [B]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: [0]
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [C]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: B
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+                - refId: D
+                  datasourceUid: hailcast-predict-api
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  model:
+                    columns:
+                      - selector: info
+                        text: info
+                        type: number
+                      - selector: scheduler_running
+                        text: scheduler_running
+                        type: string
+                      - selector: latest_generated_at
+                        text: latest_generated_at
+                        type: string
+                      - selector: last_error
+                        text: last_error
+                        type: string
+                    datasource:
+                      type: yesoreyeram-infinity-datasource
+                      uid: hailcast-predict-api
+                    filters: []
+                    format: table
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    parser: jq-backend
+                    refId: D
+                    root_selector: '[{info: 1, scheduler_running: (if .scheduler_running then "실행 중" else "중지" end), latest_generated_at: (.latest_generated_at // "없음"), last_error: ((.last_error // "없음") | tostring | gsub("[\\r\\n]+"; " ") | .[0:160])}]'
+                    source: url
+                    type: json
+                    url: /api/prediction/status
+                    url_options:
+                      data: ""
+                      method: GET
+                - refId: E
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: []
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [E]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: D
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: E
+                    type: reduce
+              noDataState: NoData
+              execErrState: Error
+              for: 0s
+              annotations:
+                summary: 최신 Prediction을 정상적으로 사용할 수 없습니다.
+                description: Prediction Scheduler 중지, 실행 오류, 최신 예측 미생성 또는 scaler 기준인 5시간 이상 stale 상태가 감지되었습니다.
+                current: 'Scheduler: {{ "{{" }} index $values.E.Labels "scheduler_running" {{ "}}" }} · 최신 생성: {{ "{{" }} index $values.E.Labels "latest_generated_at" {{ "}}" }} · 최근 오류: {{ "{{" }} index $values.E.Labels "last_error" {{ "}}" }}'
+                impact: Predictive Scaling 기준 갱신에 영향을 줄 수 있습니다. Reactive Scaling 경로의 장애를 의미하지는 않습니다.
+                action: Scheduler · latest_generated_at · last_error · Predictive Scaling 기준
+              labels:
+                component: predict
+                severity: warning
+                source: infinity
+              isPaused: false
+
+            - uid: hailcast-weather-stale
+              title: HailcastWeatherStale
+              condition: C
+              data:
+                - refId: A
+                  datasourceUid: hailcast-predict-api
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  model:
+                    columns:
+                      - selector: stale
+                        text: stale
+                        type: number
+                    datasource:
+                      type: yesoreyeram-infinity-datasource
+                      uid: hailcast-predict-api
+                    filters: []
+                    format: table
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    parser: jq-backend
+                    refId: A
+                    root_selector: '[.components[] | select(.name == "weather") | {stale: (if (.status != "healthy" and (.detail | contains("stale"))) then 1 else 0 end)}]'
+                    source: url
+                    type: json
+                    url: /health
+                    url_options:
+                      data: ""
+                      method: GET
+                - refId: B
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: []
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [B]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: [0]
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [C]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: B
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+                - refId: D
+                  datasourceUid: hailcast-predict-api
+                  relativeTimeRange:
+                    from: 600
+                    to: 0
+                  model:
+                    columns:
+                      - selector: info
+                        text: info
+                        type: number
+                      - selector: status
+                        text: status
+                        type: string
+                      - selector: detail
+                        text: detail
+                        type: string
+                    datasource:
+                      type: yesoreyeram-infinity-datasource
+                      uid: hailcast-predict-api
+                    filters: []
+                    format: table
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    parser: jq-backend
+                    refId: D
+                    root_selector: '[.components[] | select(.name == "weather") | {info: 1, status: (.status // "unknown"), detail: ((.detail // "없음") | tostring | gsub("[\\r\\n]+"; " ") | .[0:160])}]'
+                    source: url
+                    type: json
+                    url: /health
+                    url_options:
+                      data: ""
+                      method: GET
+                - refId: E
+                  datasourceUid: __expr__
+                  relativeTimeRange:
+                    from: 0
+                    to: 0
+                  model:
+                    conditions:
+                      - evaluator:
+                          params: []
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params: [E]
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                    datasource:
+                      type: __expr__
+                      uid: __expr__
+                    expression: D
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: E
+                    type: reduce
+              noDataState: NoData
+              execErrState: Error
+              for: 0s
+              annotations:
+                summary: Weather 데이터가 최신 상태가 아닙니다.
+                description: Predict health에서 Weather 데이터 stale 상태가 감지되었습니다.
+                current: 'Weather 상태: {{ "{{" }} index $values.E.Labels "status" {{ "}}" }} · 상세: {{ "{{" }} index $values.E.Labels "detail" {{ "}}" }}'
+                impact: Prediction 입력 데이터의 신뢰도가 저하될 수 있으나, 이 상태만으로 Prediction 전체 장애를 의미하지는 않습니다.
+                action: Weather status · detail · weather-cron · 마지막 수집 상태
+              labels:
+                component: weather
+                severity: warning
+                source: infinity
+              isPaused: false
+
   sidecar:
     dashboards:
       enabled: true
@@ -37,47 +422,105 @@ grafana:
       folderAnnotation: grafana_folder
       provider:
         foldersFromFilesStructure: true
+    datasources:
+      alertmanager:
+        handleGrafanaManagedAlerts: false
 
 alertmanager:
   enabled: true
   templateFiles:
     telegram-hailcast.tmpl: |-
-      {{ define "telegram.hailcast.message" -}}
-      {{- if and (gt (len .Alerts.Firing) 0) (gt (len .Alerts.Resolved) 0) -}}
-      <b>🔄 상태 변경</b>
-      {{- else if gt (len .Alerts.Firing) 0 -}}
-      <b>🔥 발생</b>
-      {{- else -}}
-      <b>✅ 정상 복구</b>
+      {{ define "telegram.hailcast.target" -}}
+      {{- if .Labels.job_name -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.job_name | html }}
+      {{- else if .Labels.deployment -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.deployment | html }}
+      {{- else if .Labels.horizontalpodautoscaler -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}HPA {{ printf "%.120s" .Labels.horizontalpodautoscaler | html }}
+      {{- else if .Labels.persistentvolumeclaim -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}PVC {{ printf "%.120s" .Labels.persistentvolumeclaim | html }}
+      {{- else if or .Labels.mountpoint .Labels.device -}}
+      {{- $host := or .Labels.node .Labels.instance -}}
+      {{- if $host }}{{ printf "%.160s" $host | html }}{{ if or .Labels.mountpoint .Labels.device }} / {{ end }}{{ end -}}
+      {{- if .Labels.mountpoint }}mountpoint={{ printf "%.160s" .Labels.mountpoint | html }}{{ if .Labels.device }} / {{ end }}{{ end -}}
+      {{- if .Labels.device }}device={{ printf "%.160s" .Labels.device | html }}{{ end -}}
+      {{- else if or .Labels.controller .Labels.resource -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }}{{ if or .Labels.controller .Labels.resource }} / {{ end }}{{ end -}}
+      {{- if .Labels.controller }}{{ printf "%.120s" .Labels.controller | html }}{{ if .Labels.resource }} / {{ end }}{{ end -}}
+      {{- if .Labels.resource }}{{ printf "%.120s" .Labels.resource | html }}{{ end -}}
+      {{- else if .Labels.node -}}
+      {{ printf "%.160s" .Labels.node | html }}
+      {{- else if and .Labels.pod .Labels.container -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }} / {{ printf "%.120s" .Labels.container | html }}
+      {{- else if .Labels.pod -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.pod | html }}
+      {{- else if .Labels.service -}}
+      {{- if .Labels.namespace }}{{ printf "%.63s" .Labels.namespace | html }} / {{ end -}}{{ printf "%.120s" .Labels.service | html }}
+      {{- else if and .Labels.job .Labels.instance -}}
+      {{ printf "%.120s" .Labels.job | html }} / {{ printf "%.160s" .Labels.instance | html }}
+      {{- else if .Labels.instance -}}
+      {{ printf "%.160s" .Labels.instance | html }}
+      {{- else if eq .Labels.component "predict" -}}
+      Predict API / Prediction pipeline
+      {{- else if eq .Labels.component "weather" -}}
+      Predict API / Weather data
+      {{- end -}}
       {{- end }}
-      <b>{{ printf "%.100s" .CommonLabels.alertname | html }}</b>
 
-      발생: {{ len .Alerts.Firing }} · 해제: {{ len .Alerts.Resolved }}
+      {{ define "telegram.hailcast.message" -}}
       {{ range $index, $alert := .Alerts -}}
       {{- if lt $index 4 }}
+      {{- if gt $index 0 }}
 
-      {{ if eq $alert.Status "firing" -}}🔥 <b>발생</b>{{ else -}}✅ <b>정상 복구</b>
-      현재 상태: 정상화됨{{ end }}
-      심각도: {{ printf "%.20s" $alert.Labels.severity | html }}
-      {{- if $alert.Labels.deployment }}
-      디플로이먼트: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.deployment | html }}
-      {{- else if $alert.Labels.horizontalpodautoscaler }}
-      HPA: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.horizontalpodautoscaler | html }}
-      {{- else if $alert.Labels.pod }}
-      파드: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.pod | html }}
-      {{- else if $alert.Labels.service }}
-      서비스: {{ printf "%.63s" $alert.Labels.namespace | html }}/{{ printf "%.120s" $alert.Labels.service | html }}
-      {{- else if $alert.Labels.node }}
-      노드: {{ printf "%.120s" $alert.Labels.node | html }}
-      {{- else if $alert.Labels.job }}
-      대상: {{ printf "%.120s" $alert.Labels.job | html }}/{{ printf "%.120s" $alert.Labels.instance | html }}
-      {{- end }}
-      {{- with $alert.Annotations.summary }}
+      {{ end -}}
       {{- if eq $alert.Status "firing" }}
-      요약: {{ printf "%.120s" . | html }}
-      {{- else }}
-      해제된 문제: {{ printf "%.120s" . | html }}
+      <b>🔥 발생 | {{ printf "%.100s" $alert.Labels.alertname | html }}</b>
+      {{- with $alert.Annotations.summary }}
+      {{ printf "%.180s" . | html }}
       {{- end }}
+
+      심각도: <b>{{ if eq $alert.Labels.severity "critical" }}CRITICAL{{ else if eq $alert.Labels.severity "warning" }}WARNING{{ else }}{{ printf "%.20s" $alert.Labels.severity | html }}{{ end }}</b>
+      {{- if or $alert.Labels.job_name $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.persistentvolumeclaim $alert.Labels.mountpoint $alert.Labels.device $alert.Labels.node $alert.Labels.controller $alert.Labels.resource $alert.Labels.pod $alert.Labels.service $alert.Labels.job $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
+
+      <b>대상</b>
+      {{ template "telegram.hailcast.target" $alert }}
+      {{- end }}
+      {{- with $alert.Annotations.description }}
+
+      <b>상태</b>
+      {{ printf "%.360s" . | html }}
+      {{- end }}
+      {{- with $alert.Annotations.current }}
+
+      <b>현재값</b>
+      {{ printf "%.240s" . | html }}
+      {{- end }}
+      {{- with $alert.Annotations.impact }}
+
+      <b>영향</b>
+      {{ printf "%.280s" . | html }}
+      {{- end }}
+      {{- with $alert.Annotations.action }}
+
+      <b>확인</b>
+      {{ printf "%.220s" . | html }}
+      {{- end }}
+
+      <b>발생</b>
+      {{ $alert.StartsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05 MST" }}
+      {{- else }}
+      <b>✅ 복구 | {{ printf "%.100s" $alert.Labels.alertname | html }}</b>
+      {{- if or $alert.Labels.job_name $alert.Labels.deployment $alert.Labels.horizontalpodautoscaler $alert.Labels.persistentvolumeclaim $alert.Labels.mountpoint $alert.Labels.device $alert.Labels.node $alert.Labels.controller $alert.Labels.resource $alert.Labels.pod $alert.Labels.service $alert.Labels.job $alert.Labels.instance (eq $alert.Labels.component "predict") (eq $alert.Labels.component "weather") }}
+
+      <b>대상</b>
+      {{ template "telegram.hailcast.target" $alert }}
+      {{- end }}
+
+      <b>상태</b>
+      정상 상태로 복구되었습니다.
+
+      <b>복구</b>
+      {{ $alert.EndsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05 MST" }}
       {{- end }}
       {{- end }}
       {{- end }}
@@ -129,7 +572,12 @@ alertmanager:
             - 'alertname = "InfoInhibitor"'
         - receiver: telegram
           matchers:
-            - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
+            - 'alertname = "KubeJobFailed"'
+            - 'namespace = "hailcast"'
+            - 'job_name =~ "predict-retraining-.*"'
+        - receiver: telegram
+          matchers:
+            - 'alertname =~ "KubeNodeNotReady|KubeNodeUnreachable|NodeFilesystemAlmostOutOfSpace|PrometheusRuleFailures|PrometheusBadConfig|AlertmanagerFailedReload|PrometheusOperatorRejectedResources|PrometheusOperatorReconcileErrors|PrometheusNotConnectedToAlertmanagers|PrometheusErrorSendingAlertsToAnyAlertmanager"'
         - receiver: telegram
           matchers:
             - 'alertname = "KubePersistentVolumeFillingUp"'
@@ -137,6 +585,11 @@ alertmanager:
         - receiver: telegram
           matchers:
             - 'component = "platform"'
+            - 'severity =~ "warning|critical"'
+        - receiver: telegram
+          matchers:
+            - 'source = "infinity"'
+            - 'component =~ "predict|weather"'
             - 'severity =~ "warning|critical"'
     receivers:
       - name: "null"

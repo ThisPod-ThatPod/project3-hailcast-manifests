@@ -1,7 +1,5 @@
 {
-  "annotations": {
-    "list": []
-  },
+  "annotations": {"list": []},
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -10,463 +8,254 @@
   "panels": [
     {
       "id": 1,
-      "title": "런타임 요약",
+      "title": "예측 기반 공급 흐름",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
       "panels": []
     },
     {
-      "id": 2,
-      "title": "Predict 수집 대상 상태",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "Prometheus가 Predict 서비스의 메트릭 수집 대상을 scrape할 수 있는지 표시한다. 예측 생성 여부, 최신성 또는 정확도를 검증하지 않는다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 0,
-        "y": 1
-      },
+      "id": 24,
+      "title": "예측 수요 추이",
+      "type": "timeseries",
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+      "description": "최신 Prediction 결과의 target_time별 predicted_demand입니다. Dashboard는 현재 시점 기준 과거 4시간과 미래 4시간을 표시하지만, 미래 값은 실제 생성된 Prediction horizon까지만 표시합니다. 이후 빈 영역은 예측값이 생성되지 않은 구간이며 Grafana 오류나 Prediction stale을 의미하지 않습니다. Prediction이 없을 때 0으로 대체하지 않습니다.",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 1},
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "min(\n  up{\n    namespace=\"$namespace\",\n    service=\"$predict_service\"\n  }\n) or vector(0)",
-          "legendFormat": "Predict 수집 상태",
+          "columns": [
+            {"selector": "target_time", "text": "Time", "type": "timestamp"},
+            {"selector": "predicted_demand", "text": "예측 수요", "type": "number"}
+          ],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "timeseries",
+          "parser": "jq-backend",
           "refId": "A",
-          "instant": true,
-          "range": false
+          "root_selector": ".predictions[]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/prediction/latest",
+          "url_options": {"data": "", "method": "GET"}
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 0,
-                "text": "수집 불가"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 1,
-                "text": "수집 가능"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
-            ]
-          }
+          "min": 0,
+          "noValue": "Prediction 없음",
+          "color": {"mode": "fixed", "fixedColor": "#FCBE17"},
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 3, "fillOpacity": 10, "spanNulls": false, "showPoints": "always", "pointSize": 5}
         },
         "overrides": []
       },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      }
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}
     },
     {
-      "id": 4,
-      "title": "Predict Ready 파드",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "kube-state-metrics가 보고한 Predict 파드의 Ready 수다. 예측 결과의 유효성을 의미하지 않는다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 5,
-        "y": 1
-      },
+      "id": 20,
+      "title": "예측 기반 스케일링 흐름",
+      "type": "timeseries",
+      "datasource": {"type": "mixed", "uid": "-- Mixed --"},
+      "description": "예측 기준 복제본은 ScalingDecisionEngine의 baseline, HPA 적용 최소값은 클러스터에 반영된 spec.minReplicas, Worker Ready는 실제 준비 완료 복제본입니다. 예측 기준 복제본의 미래 값은 실제 생성된 Prediction horizon까지만 표시하며, 이후 빈 영역은 오류를 의미하지 않습니다. HPA Desired는 흐름 판독을 위해 제외했습니다.",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 9},
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  kube_pod_status_ready{\n    namespace=\"$namespace\",\n    pod=~\"predict-.*\",\n    condition=\"true\"\n  }\n)",
-          "legendFormat": "Ready 파드",
+          "columns": [
+            {"selector": "timestamp", "text": "Time", "type": "timestamp"},
+            {"selector": "predicted", "text": "예측 기준 복제본 (API)", "type": "number"}
+          ],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "timeseries",
+          "parser": "jq-backend",
           "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
+          "root_selector": ".[]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/dashboard/pod-forecast?hours_history=4&hours_forecast=4",
+          "url_options": {"data": "", "method": "GET"}
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 10,
-      "title": "적용된 스케일링 기준값",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "KEDA reconciliation 결과 HPA spec.minReplicas에 실제 반영된 값이다. 예측값 자체나 ScaledObject spec.minReplicaCount 원본을 표시하는 패널이 아니다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 10,
-        "y": 1
-      },
-      "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_horizontalpodautoscaler_spec_min_replicas{\n    namespace=\"$namespace\",\n    horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n  }\n)",
-          "legendFormat": "적용 기준값",
-          "refId": "A",
-          "instant": true,
-          "range": false
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max(kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"$namespace\",horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"})",
+          "legendFormat": "HPA 적용 최소값",
+          "refId": "B"
         },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 11,
-      "title": "Worker Ready 파드",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "kube-state-metrics가 보고한 Worker 디플로이먼트(Deployment)의 Ready 복제본 수다.",
-      "gridPos": {
-        "h": 7,
-        "w": 5,
-        "x": 15,
-        "y": 1
-      },
-      "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "max(\n  kube_deployment_status_replicas_ready{\n    namespace=\"$namespace\",\n    deployment=\"$worker_deployment\"\n  }\n)",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "max(kube_deployment_status_replicas_ready{namespace=\"$namespace\",deployment=\"$worker_deployment\"})",
           "legendFormat": "Worker Ready",
-          "refId": "A",
-          "instant": true,
-          "range": false
+          "refId": "C"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "mappings": [],
-          "color": {
-            "mode": "thresholds"
-          }
+          "min": 0,
+          "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "lineWidth": 2, "fillOpacity": 0, "spanNulls": false, "showPoints": "never"}
         },
-        "overrides": []
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "예측 기준 복제본 (API)"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#FCBE17"}}, {"id": "custom.lineWidth", "value": 5}]},
+          {"matcher": {"id": "byName", "options": "HPA 적용 최소값"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#D9A400"}}, {"id": "custom.lineWidth", "value": 3}, {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [2, 4]}}]},
+          {"matcher": {"id": "byName", "options": "Worker Ready"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#3286F6"}}, {"id": "custom.lineWidth", "value": 2}, {"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [10, 6]}}]}
+        ]
       },
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
-      }
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}
     },
     {
-      "id": 12,
-      "title": "기준값 대비 Ready 부족분",
+      "id": 21,
+      "title": "현재 예측 기준 복제본",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "적용된 HPA 기준값에서 Worker Ready 복제본 수를 뺀 부족분이다. 0은 기준값 충족, 1 이상은 Ready 부족을 의미한다.",
-      "gridPos": {
-        "h": 7,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+      "description": "ScalingDecisionEngine이 현재 Prediction으로 계산한 baseline입니다. HPA 적용값이나 HPA desired가 아니며, 값이 없으면 0으로 대체하지 않습니다.",
+      "gridPos": {"h": 5, "w": 7, "x": 0, "y": 19},
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "clamp_min(\n  max(\n    kube_horizontalpodautoscaler_spec_min_replicas{\n      namespace=\"$namespace\",\n      horizontalpodautoscaler=\"keda-hpa-hailcast-worker-scaler\"\n    }\n  )\n  -\n  max(\n    kube_deployment_status_replicas_ready{\n      namespace=\"$namespace\",\n      deployment=\"$worker_deployment\"\n    }\n  ),\n  0\n)",
-          "legendFormat": "Ready 부족분",
+          "columns": [
+            {"selector": "desired_replicas", "text": "현재 예측 기준 복제본", "type": "number"}
+          ],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "table",
+          "parser": "jq-backend",
           "refId": "A",
-          "instant": true,
-          "range": false
+          "root_selector": "[.]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/scaling/current",
+          "url_options": {"data": "", "method": "GET"}
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "#FCBE17"}, "mappings": [], "noValue": "Prediction 없음"}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "text": {"titleSize": 18, "valueSize": 48}, "textMode": "value_and_name", "wideLayout": true}
+    },
+    {
+      "id": 22,
+      "title": "Prediction 파이프라인 상태",
+      "type": "stat",
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+      "description": "scheduler 중지, last_error, 최신 생성 시각 부재 또는 5시간 초과를 사용 불가로 표시합니다. 실제 scaler의 PREDICTION_MAX_AGE_SECONDS=18000 기준과 동일하며, API Error/NoData는 정상값 0으로 변환하지 않습니다.",
+      "gridPos": {"h": 5, "w": 17, "x": 7, "y": 19},
+      "targets": [
+        {
+          "columns": [
+            {"selector": "unavailable", "text": "Prediction 상태", "type": "number"},
+            {"selector": "age_seconds", "text": "최근 생성 경과", "type": "number"},
+            {"selector": "last_error", "text": "최근 오류", "type": "string"}
+          ],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "table",
+          "parser": "jq-backend",
+          "refId": "A",
+          "root_selector": "[{unavailable: (if (.scheduler_running == false or .last_error != null or .latest_generated_at == null or ((now * 1000) - ((.latest_generated_at | sub(\"\\\\.[0-9]+Z$\";\"Z\") | fromdateiso8601) * 1000)) > 18000000) then 1 else 0 end), age_seconds: (if .latest_generated_at == null then null else (now - (.latest_generated_at | sub(\"\\\\.[0-9]+Z$\";\"Z\") | fromdateiso8601)) end), last_error: (.last_error // \"없음\")}]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/prediction/status",
+          "url_options": {"data": "", "method": "GET"}
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "color": "green",
-                  "index": 0,
-                "text": "충족"
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
+        "defaults": {"unit": "short", "noValue": "사용 불가"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Prediction 상태"}, "properties": [{"id": "mappings", "value": [{"type": "value", "options": {"0": {"color": "green", "index": 0, "text": "사용 가능"}, "1": {"color": "red", "index": 1, "text": "사용 불가"}}}]}, {"id": "color", "value": {"mode": "thresholds"}}, {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}]},
+          {"matcher": {"id": "byName", "options": "최근 생성 경과"}, "properties": [{"id": "unit", "value": "dtdurations"}, {"id": "decimals", "value": 0}, {"id": "color", "value": {"mode": "fixed", "fixedColor": "#CCCCDC"}}]}
+        ]
       },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
-      }
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value_and_name", "wideLayout": true}
     },
     {
       "id": 6,
-      "title": "Predict 런타임 상세",
+      "title": "Predict 런타임 진단",
       "type": "row",
       "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 8
-      },
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 24},
       "panels": []
+    },
+    {
+      "id": 23,
+      "title": "Predict Runtime",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "Prometheus scrape와 Predict 파드 Ready를 표시합니다. Prediction 데이터 유효성을 의미하지 않습니다.",
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 25},
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "min(up{namespace=\"$namespace\",service=\"$predict_service\"})", "instant": false, "legendFormat": "메트릭 수집", "range": true, "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(kube_pod_status_ready{namespace=\"$namespace\",pod=~\"predict-.*\",condition=\"true\"})", "instant": false, "legendFormat": "Predict Ready 파드", "range": true, "refId": "B"}
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "메트릭 수집"}, "properties": [{"id": "mappings", "value": [{"type": "value", "options": {"0": {"color": "red", "index": 0, "text": "DOWN"}, "1": {"color": "green", "index": 1, "text": "UP"}}}]}, {"id": "color", "value": {"mode": "thresholds"}}]}
+        ]
+      },
+      "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value_and_name", "wideLayout": true}
     },
     {
       "id": 5,
       "title": "Predict 컨테이너 재시작 증가량 (5분)",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "description": "각 시점 기준 최근 5분 동안 동일한 Predict 파드 안에서 predict 컨테이너의 재시작 counter가 증가한 양을 표시한다. 파드 삭제·교체·재생성은 컨테이너 재시작이 아니므로 이 패널에 집계되지 않는다.",
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "최근 5분 predict 컨테이너 restart counter 증가량입니다. 예측 실패 원인은 앱 로그가 없으면 이 패널만으로 확인할 수 없습니다.",
+      "gridPos": {"h": 7, "w": 16, "x": 8, "y": 25},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${datasource}"}, "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"$namespace\",pod=~\"predict-.*\",container=\"predict\"}[5m]))", "legendFormat": "재시작", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0, "custom": {"drawStyle": "bars", "axisSoftMax": 1}}, "overrides": []},
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}}
+    },
+    {
+      "id": 25,
+      "title": "Predictive Scaling Scheduler 진단",
+      "type": "table",
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+      "description": "Predictive Scaling Scheduler의 실행 상태, 최근 실행 시각과 판단을 표시합니다. 실행 시각은 Dashboard timezone 기준이며 Prediction Alert나 fallback/stalled 상태를 의미하지 않습니다. util은 CPU 사용률이 아니라 최근 1시간 실측 수요를 설정 용량(현재 replica × 500)으로 나눈 비율이므로 100%를 초과할 수 있습니다. reactive-hold는 reactive scale-up 이후 util이 하한 40% 이하가 될 때까지 replica를 유지하는 상태입니다.",
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 32},
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(\n  increase(\n    kube_pod_container_status_restarts_total{\n      namespace=\"$namespace\",\n      pod=~\"predict-.*\",\n      container=\"predict\"\n    }[5m]\n  )\n)",
-          "legendFormat": "재시작",
-          "refId": "A"
+          "columns": [
+            {"selector": "scheduler_running", "text": "Scheduler", "type": "string"},
+            {"selector": "last_run_at", "text": "최근 실행", "type": "timestamp"},
+            {"selector": "last_decision", "text": "최근 스케일링 판단", "type": "string"},
+            {"selector": "last_error", "text": "최근 오류", "type": "string"}
+          ],
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "hailcast-predict-api"},
+          "filters": [],
+          "format": "table",
+          "parser": "jq-backend",
+          "refId": "A",
+          "root_selector": "[{scheduler_running: (if .scheduler_running then \"실행 중\" else \"중지\" end), last_run_at: .last_run_at, last_decision: ((.last_decision // \"없음\") | tostring | gsub(\"[\\r\\n]+\"; \" \")), last_error: ((.last_error // \"없음\") | tostring | gsub(\"[\\r\\n]+\"; \" \") | .[0:160])}]",
+          "source": "url",
+          "type": "json",
+          "url": "/api/scaling/status",
+          "url_options": {"data": "", "method": "GET"}
         }
       ],
-    "fieldConfig": {
-      "defaults": {
-        "unit": "short",
-        "mappings": [],
-        "min": 0,
-        "custom": {
-          "drawStyle": "bars",
-          "axisSoftMax": 1
-        }
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "left", "cellOptions": {"type": "auto"}, "inspect": false}, "noValue": "없음"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "Scheduler"}, "properties": [{"id": "custom.width", "value": 110}, {"id": "mappings", "value": [{"type": "value", "options": {"실행 중": {"color": "green", "index": 0, "text": "실행 중"}, "중지": {"color": "red", "index": 1, "text": "중지"}}}]}, {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
+          {"matcher": {"id": "byName", "options": "최근 실행"}, "properties": [{"id": "custom.width", "value": 210}]},
+          {"matcher": {"id": "byName", "options": "최근 스케일링 판단"}, "properties": [{"id": "custom.width", "value": 500}]}
+        ]
       },
-      "overrides": []
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      }
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true}
     }
   ],
-  "refresh": "30s",
+  "refresh": "10s",
   "schemaVersion": 41,
-  "tags": [
-    "hailcast",
-    "predict",
-    "scaling-baseline",
-    "runtime-verification"
-  ],
+  "tags": ["hailcast", "predict", "predictive-scaling", "infinity"],
   "templating": {
     "list": [
-      {
-        "name": "datasource",
-        "label": "데이터 소스",
-        "type": "datasource",
-        "query": "prometheus",
-        "refresh": 1
-      },
-      {
-        "name": "namespace",
-        "label": "네임스페이스",
-        "type": "constant",
-        "query": "hailcast",
-        "current": {
-          "text": "hailcast",
-          "value": "hailcast"
-        },
-        "hide": 0
-      },
-      {
-        "name": "worker_deployment",
-        "label": "Worker 디플로이먼트",
-        "type": "constant",
-        "query": "hailcast-worker",
-        "current": {
-          "text": "hailcast-worker",
-          "value": "hailcast-worker"
-        },
-        "hide": 0
-      },
-      {
-        "name": "predict_service",
-        "label": "Predict 서비스",
-        "type": "constant",
-        "query": "predict",
-        "current": {
-          "text": "predict",
-          "value": "predict"
-        },
-        "hide": 0
-      }
+      {"name": "datasource", "label": "Prometheus 데이터 소스", "type": "datasource", "query": "prometheus", "refresh": 1},
+      {"name": "namespace", "label": "네임스페이스", "type": "constant", "query": "hailcast", "current": {"text": "hailcast", "value": "hailcast"}, "hide": 0},
+      {"name": "worker_deployment", "label": "Worker 디플로이먼트", "type": "constant", "query": "hailcast-worker", "current": {"text": "hailcast-worker", "value": "hailcast-worker"}, "hide": 0},
+      {"name": "predict_service", "label": "Predict 서비스", "type": "constant", "query": "predict", "current": {"text": "predict", "value": "predict"}, "hide": 0}
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
+  "time": {"from": "now-4h", "to": "now+4h"},
   "timepicker": {},
   "timezone": "browser",
-  "title": "01 예측 기반 스케일링 — 런타임 검증",
+  "title": "01 예측 기반 스케일링",
   "uid": "hailcast-01-predict-scaling",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }

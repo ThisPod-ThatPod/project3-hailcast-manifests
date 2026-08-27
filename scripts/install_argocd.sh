@@ -81,4 +81,4 @@ else
 fi
 
 info "Argo CD 설치 완료(app-of-apps 포함)."
-info "참고: ESO CRD는 별도 필요(installCRDs:false) — infra docs/비용관리.md '재구축 시 hailcast-rds-secret' 절 참고."
+info "참고: ESO CRD는 별도 필요(installCRDs:false) — 설치 명령은 ops docs/재구축_체크리스트.md 8-3절."

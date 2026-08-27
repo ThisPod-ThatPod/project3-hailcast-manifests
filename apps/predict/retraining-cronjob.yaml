@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: predict-retraining
+  namespace: hailcast
+  labels:
+    app: predict-retraining
+spec:
+  schedule: "0 3 * * *"
+  timeZone: "Asia/Seoul"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: predict-retraining
+        spec:
+          serviceAccountName: retraining-sa
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+          containers:
+            - name: retraining
+              image: 797452357900.dkr.ecr.ap-northeast-2.amazonaws.com/hailcast-dev-predict:3dda463
+              command:
+                - python
+              args:
+                - ml/retrain_trigger.py
+                - --yes
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: S3_BUCKET
+                  value: "hailcast-dev-model-artifacts-58b4f8fd"
+                - name: ML_S3_UPLOAD_ENABLED
+                  value: "true"
+              resources:
+                requests:
+                  cpu: "250m"
+                  memory: "512Mi"
+                limits:
+                  memory: "1Gi"
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir: {}
